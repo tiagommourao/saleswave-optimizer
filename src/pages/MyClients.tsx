@@ -2,10 +2,9 @@
 import { useState } from 'react';
 import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
-import OrderForm from '@/components/OrderForm';
-import ThemeToggle from '@/components/ThemeToggle';
+import ClientList from '@/components/ClientList';
 
-const NewOrder = () => {
+const MyClients = () => {
   // Mock data for the header (same as in Index.tsx)
   const userInfo = {
     companyName: 'CISER',
@@ -19,13 +18,10 @@ const NewOrder = () => {
       <Header {...userInfo} />
       <Navigation onTabChange={() => {}} />
       <main className="flex-1">
-        <OrderForm />
+        <ClientList />
       </main>
-      <div className="fixed bottom-4 right-4">
-        <ThemeToggle />
-      </div>
     </div>
   );
 };
 
-export default NewOrder;
+export default MyClients;
