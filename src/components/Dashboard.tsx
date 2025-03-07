@@ -1,5 +1,6 @@
 
 import { FC } from 'react';
+import { Link } from 'react-router-dom';
 import MetricCard from './MetricCard';
 import { Button } from '@/components/ui/button';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
@@ -47,14 +48,15 @@ const Dashboard: FC = () => {
           icon={<MessageSquare className="h-5 w-5" />}
           variant="primary"
         />
-        <MetricCard 
-          title="Iniciar Novo Pedido"
-          value="Clique aqui"
-          description="Criar um novo pedido de vendas"
-          icon={<ShoppingCart className="h-5 w-5" />}
-          variant="accent"
-          onClick={() => alert('Iniciando novo pedido...')}
-        />
+        <Link to="/new-order">
+          <MetricCard 
+            title="Iniciar Novo Pedido"
+            value="Clique aqui"
+            description="Criar um novo pedido de vendas"
+            icon={<ShoppingCart className="h-5 w-5" />}
+            variant="accent"
+          />
+        </Link>
         <MetricCard 
           title="Parcelas Vencidas" 
           value="R$ 45.678,90"
