@@ -3,7 +3,6 @@ import { useState } from 'react';
 import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
 import OrderForm from '@/components/OrderForm';
-import ThemeToggle from '@/components/ThemeToggle';
 
 const NewOrder = () => {
   // Mock data for the header (same as in Index.tsx)
@@ -21,9 +20,6 @@ const NewOrder = () => {
       <main className="flex-1">
         <OrderForm />
       </main>
-      <div className="fixed bottom-4 right-4">
-        <ThemeToggle />
-      </div>
     </div>
   );
 };
