@@ -19,12 +19,19 @@ const LoginCard = ({
   loginInProgress, 
   configCheck 
 }: LoginCardProps) => {
+  const [showConfigSource, setShowConfigSource] = useState(false);
   const hasMinimumConfig = configCheck.clientId && configCheck.tenant;
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">CISER</CardTitle>
+        <div className="mx-auto">
+          <img 
+            src="https://www.ciser.com.br/application/modules/comum/assets/img/logo-ciser.svg" 
+            alt="CISER Logo" 
+            className="h-10 mb-2" 
+          />
+        </div>
         <CardDescription>
           {hasMinimumConfig 
             ? "Entre com sua conta Microsoft para acessar o sistema" 
@@ -33,11 +40,11 @@ const LoginCard = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-center">
-          <img 
-            src="/placeholder.svg" 
-            alt="CISER Logo" 
-            className="w-32 h-32 mx-auto mb-6" 
-          />
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-6 flex items-center justify-center">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+              SFA CISER
+            </h1>
+          </div>
         </div>
         
         {!hasMinimumConfig && (
@@ -58,7 +65,7 @@ const LoginCard = ({
           </div>
         )}
         
-        {hasMinimumConfig && (
+        {showConfigSource && hasMinimumConfig && (
           <div className="rounded-md bg-blue-50 dark:bg-blue-900/30 p-3 text-sm text-blue-800 dark:text-blue-200">
             <div className="flex items-center gap-2">
               {configCheck.source === "database" ? (
@@ -90,7 +97,14 @@ const LoginCard = ({
             "Entrar com Microsoft"
           )}
         </Button>
-        <Button className="w-full" variant="outline" onClick={handleConfig}>
+        <Button 
+          className="w-full" 
+          variant="outline" 
+          onClick={() => {
+            setShowConfigSource(true);
+            handleConfig();
+          }}
+        >
           {hasMinimumConfig ? "Editar Configuração Azure AD" : "Configurar Azure AD"}
         </Button>
       </CardFooter>
