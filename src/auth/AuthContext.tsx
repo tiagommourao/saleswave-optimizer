@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, UserManager, WebStorageStateStore, Log } from "oidc-client-ts";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 type AuthConfig = {
   authority: string;
@@ -47,6 +48,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  // Save user token to Supabase
+  const saveUserToken = async (userData: User) => {
+    if (!userData || !userData.profile) return;
+    
+    try {
+      const username = userData.profile.name || userData.profile.email || 'unknown';
+      const accessToken = userData.access_token;
+      
+      if (!accessToken) {
+        console.error("No access token available to save");
+        return;
+      }
+      
+      const { error: upsertError } = await supabase
+        .from('user_tokens')
+        .upsert([
+          {
+            user_id: userData.profile.sub,
+            username: username,
+            access_token: accessToken
+          }
+        ], { onConflict: 'user_id' });
+      
+      if (upsertError) {
+        console.error("Error saving user token:", upsertError);
+        toast({
+          variant: "destructive",
+          title: "Erro ao salvar token",
+          description: "Não foi possível salvar o token de acesso."
+        });
+      } else {
+        console.log("User token saved successfully");
+      }
+    } catch (err) {
+      console.error("Error in saveUserToken:", err);
+    }
+  };
+
   useEffect(() => {
     const initializeUserManager = () => {
       if (!clientId || !tenant) {
@@ -87,9 +126,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     if (manager) {
       setUserManager(manager);
 
-      manager.events.addUserLoaded((user) => {
-        console.log("Usuário carregado:", user);
-        setUser(user);
+      manager.events.addUserLoaded((loadedUser) => {
+        console.log("Usuário carregado:", loadedUser);
+        setUser(loadedUser);
+        // Save user token when loaded
+        saveUserToken(loadedUser);
         setIsLoading(false);
       });
 
@@ -108,6 +149,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       manager.getUser().then((loadedUser) => {
         console.log("Usuario atual verificado:", loadedUser);
         setUser(loadedUser);
+        // Save user token for existing user
+        if (loadedUser) {
+          saveUserToken(loadedUser);
+        }
         setIsLoading(false);
       }).catch((err) => {
         console.error("Erro ao obter usuário:", err);
