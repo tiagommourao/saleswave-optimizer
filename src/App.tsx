@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
@@ -20,19 +19,15 @@ import { useToast } from './hooks/use-toast';
 function App() {
   const [clientId, setClientId] = useState<string>('');
   const [tenant, setTenant] = useState<string>('');
-  const [clientSecret, setClientSecret] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadAttempted, setLoadAttempted] = useState<boolean>(false);
   const { toast } = useToast();
 
-  // Create the loadConfigurations function with useCallback to prevent recreating it on every render
   const loadConfigurations = useCallback(async () => {
-    // If already loading or already attempted, don't try again
     if (isLoading && loadAttempted) return;
     
     setIsLoading(true);
     try {
-      // Tentar carregar do Supabase primeiro
       const supabaseConfig = await getAzureConfig();
       
       if (supabaseConfig) {
@@ -41,7 +36,6 @@ function App() {
         setTenant(supabaseConfig.tenant);
         setClientSecret(supabaseConfig.secret);
         
-        // Atualizar também o localStorage para compatibilidade
         localStorage.setItem('azure_ad_client_id', supabaseConfig.clientid);
         localStorage.setItem('azure_ad_tenant', supabaseConfig.tenant);
         if (supabaseConfig.secret) {
@@ -50,7 +44,6 @@ function App() {
           localStorage.removeItem('azure_ad_client_secret');
         }
       } else {
-        // Se não encontrar no Supabase, usar o localStorage como fallback
         const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
         const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
         const savedClientSecret = localStorage.getItem('azure_ad_client_secret') || undefined;
@@ -67,7 +60,6 @@ function App() {
         description: "Não foi possível carregar as configurações do Azure AD."
       });
       
-      // Em caso de erro, usar o localStorage como fallback
       const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
       const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
       const savedClientSecret = localStorage.getItem('azure_ad_client_secret') || undefined;
@@ -82,12 +74,10 @@ function App() {
   }, [isLoading, loadAttempted, toast]);
 
   useEffect(() => {
-    // Only load configurations if not already attempted
     if (!loadAttempted) {
       loadConfigurations();
     }
 
-    // Monitorar mudanças nas configurações locais
     const handleStorageChange = () => {
       setClientId(localStorage.getItem('azure_ad_client_id') || '');
       setTenant(localStorage.getItem('azure_ad_tenant') || '');
@@ -113,7 +103,7 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <AuthProvider clientId={clientId} tenant={tenant} clientSecret={clientSecret}>
+      <AuthProvider clientId={clientId} tenant={tenant}>
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -121,13 +111,11 @@ function App() {
             <Route path="/auth-callback" element={<AuthCallback />} />
             <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
             
-            {/* Routes para páginas dentro do sistema */}
             <Route path="/relatorios" element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
             <Route path="/novo-pedido" element={<PrivateRoute><NewOrder /></PrivateRoute>} />
             <Route path="/meus-clientes" element={<PrivateRoute><MyClients /></PrivateRoute>} />
             <Route path="/catalogo-produtos" element={<PrivateRoute><ProductCatalog /></PrivateRoute>} />
             
-            {/* Legacy route paths - redirect to new paths */}
             <Route path="/reports" element={<Navigate to="/relatorios" replace />} />
             <Route path="/new-order" element={<Navigate to="/novo-pedido" replace />} />
             <Route path="/my-clients" element={<Navigate to="/meus-clientes" replace />} />

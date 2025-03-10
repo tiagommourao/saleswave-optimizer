@@ -41,7 +41,7 @@ interface AuthProviderProps {
   clientSecret?: string;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, tenant, clientSecret }) => {
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, tenant }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userManager, setUserManager] = useState<UserManager | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -56,13 +56,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         return null;
       }
 
-      console.log("Iniciando configuração do UserManager com:", { 
-        clientId, 
-        tenant, 
-        clientSecret: clientSecret ? "Presente (não exibido por segurança)" : "Não fornecido" 
-      });
+      console.log("Iniciando configuração do UserManager com:", { clientId, tenant });
       
-      // Habilitar logs para debug 
       Log.setLogger(console);
       Log.setLevel(Log.DEBUG);
 
@@ -80,20 +75,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         userStore: new WebStorageStateStore({ store: window.localStorage }),
       };
 
-      // Adicionar client_secret apenas se estiver definido
-      if (clientSecret) {
-        // O client_secret deve ser fornecido sem modificações
-        settings.client_secret = clientSecret;
-        console.log("Client secret foi adicionado à configuração");
-      }
-
-      console.log("Configurações finais (sem exibir secrets):", {
+      console.log("Configurações finais:", {
         ...settings,
-        client_secret: settings.client_secret ? "***" : undefined
       });
 
       const manager = new UserManager(settings);
-
       console.log("UserManager configurado:", manager);
       return manager;
     };
@@ -138,7 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     } else {
       setIsLoading(false);
     }
-  }, [clientId, tenant, clientSecret]);
+  }, [clientId, tenant]);
 
   const login = async () => {
     if (!userManager) {
