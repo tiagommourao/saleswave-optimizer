@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, UserManager, WebStorageStateStore, Log } from "oidc-client-ts";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +10,6 @@ type AuthConfig = {
   post_logout_redirect_uri: string;
   response_type: string;
   scope: string;
-  client_secret?: string;
 };
 
 interface AuthContextType {
@@ -38,7 +38,6 @@ interface AuthProviderProps {
   children: React.ReactNode;
   clientId: string;
   tenant: string;
-  clientSecret?: string;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, tenant }) => {

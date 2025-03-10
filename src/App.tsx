@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
@@ -34,23 +35,15 @@ function App() {
         console.log('Configurações carregadas do Supabase');
         setClientId(supabaseConfig.clientid);
         setTenant(supabaseConfig.tenant);
-        setClientSecret(supabaseConfig.secret);
         
         localStorage.setItem('azure_ad_client_id', supabaseConfig.clientid);
         localStorage.setItem('azure_ad_tenant', supabaseConfig.tenant);
-        if (supabaseConfig.secret) {
-          localStorage.setItem('azure_ad_client_secret', supabaseConfig.secret);
-        } else {
-          localStorage.removeItem('azure_ad_client_secret');
-        }
       } else {
         const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
         const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
-        const savedClientSecret = localStorage.getItem('azure_ad_client_secret') || undefined;
         
         setClientId(savedClientId);
         setTenant(savedTenant);
-        setClientSecret(savedClientSecret);
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
@@ -62,11 +55,9 @@ function App() {
       
       const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
       const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
-      const savedClientSecret = localStorage.getItem('azure_ad_client_secret') || undefined;
       
       setClientId(savedClientId);
       setTenant(savedTenant);
-      setClientSecret(savedClientSecret);
     } finally {
       setIsLoading(false);
       setLoadAttempted(true);
@@ -81,7 +72,6 @@ function App() {
     const handleStorageChange = () => {
       setClientId(localStorage.getItem('azure_ad_client_id') || '');
       setTenant(localStorage.getItem('azure_ad_tenant') || '');
-      setClientSecret(localStorage.getItem('azure_ad_client_secret') || undefined);
     };
     
     window.addEventListener('storage', handleStorageChange);
