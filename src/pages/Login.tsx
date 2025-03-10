@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Settings, AlertCircle } from 'lucide-react';
+import { Loader2, Settings, AlertCircle, Database, CloudOff } from 'lucide-react';
+import { getAzureConfig } from '@/lib/supabase';
 
 const Login = () => {
   const { login, isAuthenticated, error, isLoading } = useAuth();
@@ -15,20 +16,61 @@ const Login = () => {
   const [configCheck, setConfigCheck] = useState({
     clientId: false,
     tenant: false,
-    clientSecret: false
+    clientSecret: false,
+    source: null as "database" | "local" | null
   });
+  const [checkingConfig, setCheckingConfig] = useState(true);
 
   // Verifica configurações ao carregar
   useEffect(() => {
-    const clientId = localStorage.getItem('azure_ad_client_id');
-    const tenant = localStorage.getItem('azure_ad_tenant');
-    const clientSecret = localStorage.getItem('azure_ad_client_secret');
+    const checkConfigurations = async () => {
+      setCheckingConfig(true);
+      try {
+        // Verificar se existe configuração no Supabase
+        const supabaseConfig = await getAzureConfig();
+        
+        if (supabaseConfig) {
+          // Configuração encontrada no Supabase
+          setConfigCheck({
+            clientId: !!supabaseConfig.client_id,
+            tenant: !!supabaseConfig.tenant,
+            clientSecret: !!supabaseConfig.client_secret,
+            source: "database"
+          });
+          console.log("Usando configurações do banco de dados");
+        } else {
+          // Caso não encontre no Supabase, verificar localStorage
+          const clientId = localStorage.getItem('azure_ad_client_id');
+          const tenant = localStorage.getItem('azure_ad_tenant');
+          const clientSecret = localStorage.getItem('azure_ad_client_secret');
+          
+          setConfigCheck({
+            clientId: !!clientId,
+            tenant: !!tenant,
+            clientSecret: !!clientSecret,
+            source: "local"
+          });
+          console.log("Usando configurações locais");
+        }
+      } catch (error) {
+        console.error("Erro ao verificar configurações:", error);
+        // Em caso de erro, tenta usar o localStorage
+        const clientId = localStorage.getItem('azure_ad_client_id');
+        const tenant = localStorage.getItem('azure_ad_tenant');
+        const clientSecret = localStorage.getItem('azure_ad_client_secret');
+        
+        setConfigCheck({
+          clientId: !!clientId,
+          tenant: !!tenant,
+          clientSecret: !!clientSecret,
+          source: "local"
+        });
+      } finally {
+        setCheckingConfig(false);
+      }
+    };
     
-    setConfigCheck({
-      clientId: !!clientId,
-      tenant: !!tenant,
-      clientSecret: !!clientSecret
-    });
+    checkConfigurations();
   }, []);
 
   useEffect(() => {
@@ -70,7 +112,7 @@ const Login = () => {
     navigate('/auth-config');
   };
 
-  if (isLoading) {
+  if (isLoading || checkingConfig) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
@@ -117,6 +159,23 @@ const Login = () => {
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 <p>O Client Secret não está configurado. Isso pode ser necessário para alguns tipos de aplicativos Azure AD.</p>
+              </div>
+            </div>
+          )}
+          
+          {hasMinimumConfig && (
+            <div className="rounded-md bg-blue-50 dark:bg-blue-900/30 p-3 text-sm text-blue-800 dark:text-blue-200">
+              <div className="flex items-center gap-2">
+                {configCheck.source === "database" ? (
+                  <Database className="h-4 w-4" />
+                ) : (
+                  <CloudOff className="h-4 w-4" />
+                )}
+                <p>
+                  {configCheck.source === "database" 
+                    ? "Usando configurações sincronizadas do banco de dados." 
+                    : "Usando configurações locais (não sincronizadas)."}
+                </p>
               </div>
             </div>
           )}

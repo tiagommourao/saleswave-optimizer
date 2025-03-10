@@ -14,23 +14,71 @@ import ReportsPage from './pages/Reports';
 import NotFound from './pages/NotFound';
 import { ThemeProvider } from './components/ThemeProvider';
 import { Toaster } from './components/ui/toaster';
+import { getAzureConfig } from './lib/supabase';
+import { useToast } from './hooks/use-toast';
 
 function App() {
   const [clientId, setClientId] = useState<string>('');
   const [tenant, setTenant] = useState<string>('');
   const [clientSecret, setClientSecret] = useState<string | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Carregar configurações do Azure AD do localStorage
-    const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
-    const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
-    const savedClientSecret = localStorage.getItem('azure_ad_client_secret') || undefined;
-    
-    setClientId(savedClientId);
-    setTenant(savedTenant);
-    setClientSecret(savedClientSecret);
-    
-    // Monitorar mudanças nas configurações
+    // Função assíncrona para carregar dados do Supabase e localStorage
+    const loadConfigurations = async () => {
+      try {
+        // Tentar carregar do Supabase primeiro
+        const supabaseConfig = await getAzureConfig();
+        
+        if (supabaseConfig) {
+          console.log('Configurações carregadas do Supabase');
+          setClientId(supabaseConfig.client_id);
+          setTenant(supabaseConfig.tenant);
+          setClientSecret(supabaseConfig.client_secret);
+          
+          // Atualizar também o localStorage para compatibilidade
+          localStorage.setItem('azure_ad_client_id', supabaseConfig.client_id);
+          localStorage.setItem('azure_ad_tenant', supabaseConfig.tenant);
+          if (supabaseConfig.client_secret) {
+            localStorage.setItem('azure_ad_client_secret', supabaseConfig.client_secret);
+          } else {
+            localStorage.removeItem('azure_ad_client_secret');
+          }
+        } else {
+          // Se não encontrar no Supabase, usar o localStorage como fallback
+          const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
+          const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
+          const savedClientSecret = localStorage.getItem('azure_ad_client_secret') || undefined;
+          
+          setClientId(savedClientId);
+          setTenant(savedTenant);
+          setClientSecret(savedClientSecret);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar configurações:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao carregar configurações",
+          description: "Não foi possível carregar as configurações do Azure AD."
+        });
+        
+        // Em caso de erro, usar o localStorage como fallback
+        const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
+        const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
+        const savedClientSecret = localStorage.getItem('azure_ad_client_secret') || undefined;
+        
+        setClientId(savedClientId);
+        setTenant(savedTenant);
+        setClientSecret(savedClientSecret);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadConfigurations();
+
+    // Monitorar mudanças nas configurações locais
     const handleStorageChange = () => {
       setClientId(localStorage.getItem('azure_ad_client_id') || '');
       setTenant(localStorage.getItem('azure_ad_tenant') || '');
@@ -41,7 +89,18 @@ function App() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [toast]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold mb-4">Carregando configurações...</h2>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800 dark:border-gray-200 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
@@ -53,7 +112,7 @@ function App() {
             <Route path="/auth-callback" element={<AuthCallback />} />
             <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
             
-            {/* Updated routes to match Navigation component links */}
+            {/* Routes para páginas dentro do sistema */}
             <Route path="/relatorios" element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
             <Route path="/novo-pedido" element={<PrivateRoute><NewOrder /></PrivateRoute>} />
             <Route path="/meus-clientes" element={<PrivateRoute><MyClients /></PrivateRoute>} />
