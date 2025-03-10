@@ -1,13 +1,13 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Obter as variáveis de ambiente do Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Definir valores padrão (URL e chave anônima do projeto SFA)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ycjmaxrexzzclhvgynwr.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inljam1heHJleHp6Y2xodmd5bndyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2MTE1NDQsImV4cCI6MjA1NzE4NzU0NH0.1WpYuBnjP1AouBS61OLrnJKRC8dbaVoT0Bs4GAWR2hg';
 
-// Verificar se as variáveis estão definidas
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Variáveis de ambiente do Supabase não configuradas');
+// Verificar se as variáveis estão definidas (apenas log, agora temos valores padrão)
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  console.warn('Variáveis de ambiente do Supabase não configuradas. Usando valores padrão.');
 }
 
 // Criar e exportar o cliente Supabase
