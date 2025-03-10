@@ -161,7 +161,7 @@ const ProductList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white p-4 rounded-md border border-sfa-border dark:bg-gray-800 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800/70 dark:backdrop-blur-md dark:border dark:border-gray-700/50 p-4 rounded-md border border-sfa-border">
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
             <Checkbox 
@@ -186,7 +186,7 @@ const ProductList = () => {
             <Button 
               variant="outline" 
               onClick={applyMassDiscount}
-              className="border-sfa-border dark:border-gray-700 dark:text-white"
+              className="border-sfa-border dark:border-gray-700 dark:text-white dark:bg-gray-800/70"
             >
               <Percent className="h-4 w-4 mr-2" />
               Aplicar Desconto
@@ -194,7 +194,7 @@ const ProductList = () => {
           </div>
           
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="outline" className="border-sfa-border dark:border-gray-700 dark:text-white">
+            <Button variant="outline" className="border-sfa-border dark:border-gray-700 dark:text-white dark:bg-gray-800/70">
               <AlertCircle className="h-4 w-4 mr-2" />
               Verificar Produtos
             </Button>
@@ -202,10 +202,10 @@ const ProductList = () => {
         </div>
       </div>
       
-      <Card className="border border-sfa-border dark:border-gray-700 dark:bg-gray-800">
+      <Card className="border border-sfa-border dark:border-gray-700 dark:bg-gray-800/70 dark:backdrop-blur-md">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-700 border-b border-sfa-border dark:border-gray-600">
+            <thead className="bg-gray-50 dark:bg-gray-700/80 border-b border-sfa-border dark:border-gray-600">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-sfa-secondary dark:text-gray-300">
                   <Checkbox 
@@ -238,7 +238,7 @@ const ProductList = () => {
                 </tr>
               ) : (
                 products.map((product, index) => (
-                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-4 py-3">
                       <Checkbox 
                         checked={product.selected} 
@@ -314,7 +314,7 @@ const ProductList = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-3 flex justify-between items-center bg-gray-50 dark:bg-gray-700 border-t border-sfa-border dark:border-gray-600">
+        <div className="px-4 py-3 flex justify-between items-center bg-gray-50 dark:bg-gray-700/80 border-t border-sfa-border dark:border-gray-600">
           <div className="text-sm text-sfa-secondary dark:text-gray-300">
             Mostrando {products.length} produtos
           </div>
