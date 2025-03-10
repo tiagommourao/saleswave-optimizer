@@ -1,15 +1,25 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2, Settings } from 'lucide-react';
 
 const Login = () => {
   const { login, isAuthenticated, error, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [loginInProgress, setLoginInProgress] = useState(false);
+  const [configCheck, setConfigCheck] = useState(false);
+
+  // Verifica configurações ao carregar
+  useEffect(() => {
+    const clientId = localStorage.getItem('azure_ad_client_id');
+    const tenant = localStorage.getItem('azure_ad_tenant');
+    setConfigCheck(!!clientId && !!tenant);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
@@ -24,6 +34,7 @@ const Login = () => {
         title: "Erro de autenticação",
         description: error.message
       });
+      setLoginInProgress(false);
     }
   }, [error, toast]);
 
@@ -41,6 +52,7 @@ const Login = () => {
       return;
     }
 
+    setLoginInProgress(true);
     login();
   };
 
@@ -53,7 +65,7 @@ const Login = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Carregando...</h2>
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800 dark:border-gray-200 mx-auto"></div>
         </div>
       </div>
     );
@@ -65,7 +77,9 @@ const Login = () => {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">CISER</CardTitle>
           <CardDescription>
-            Entre com sua conta Microsoft para acessar o sistema
+            {configCheck 
+              ? "Entre com sua conta Microsoft para acessar o sistema" 
+              : "Configure o Azure AD para acessar o sistema"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -76,13 +90,32 @@ const Login = () => {
               className="w-32 h-32 mx-auto mb-6" 
             />
           </div>
+          {!configCheck && (
+            <div className="rounded-md bg-amber-50 dark:bg-amber-900/30 p-3 text-sm text-amber-800 dark:text-amber-200">
+              <div className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                <p>Você precisa configurar o Azure AD antes de fazer login.</p>
+              </div>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-3">
-          <Button className="w-full" onClick={handleLogin}>
-            Entrar com Microsoft
+          <Button 
+            className="w-full" 
+            onClick={handleLogin} 
+            disabled={loginInProgress || !configCheck}
+          >
+            {loginInProgress ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                Autenticando...
+              </>
+            ) : (
+              "Entrar com Microsoft"
+            )}
           </Button>
           <Button className="w-full" variant="outline" onClick={handleConfig}>
-            Configurar Azure AD
+            {configCheck ? "Editar Configuração Azure AD" : "Configurar Azure AD"}
           </Button>
         </CardFooter>
       </Card>

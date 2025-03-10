@@ -5,11 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const AuthConfig = () => {
   const [clientId, setClientId] = useState<string>('');
   const [tenant, setTenant] = useState<string>('');
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Carregar configurações salvas
@@ -37,6 +39,15 @@ const AuthConfig = () => {
       title: "Configuração salva",
       description: "As configurações do Azure AD foram salvas com sucesso."
     });
+
+    // Após salvar, redireciona para a página de login
+    setTimeout(() => {
+      navigate('/login');
+    }, 1500); // Pequeno atraso para que o usuário veja a mensagem de sucesso
+  };
+
+  const handleBackToLogin = () => {
+    navigate('/login');
   };
 
   return (
@@ -68,9 +79,12 @@ const AuthConfig = () => {
             />
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex flex-col gap-2">
           <Button className="w-full" onClick={handleSave}>
             Salvar Configuração
+          </Button>
+          <Button variant="outline" className="w-full" onClick={handleBackToLogin}>
+            Voltar ao Login
           </Button>
         </CardFooter>
       </Card>
