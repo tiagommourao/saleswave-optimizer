@@ -8,14 +8,12 @@ import { ConfigCheckResult } from '@/types/auth';
 
 interface LoginCardProps {
   handleLogin: () => void;
-  handleConfig: () => void;
   loginInProgress: boolean;
   configCheck: ConfigCheckResult;
 }
 
 const LoginCard = ({ 
   handleLogin, 
-  handleConfig, 
   loginInProgress, 
   configCheck 
 }: LoginCardProps) => {
@@ -82,7 +80,7 @@ const LoginCard = ({
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex flex-col space-y-3">
+      <CardFooter>
         <Button 
           className="w-full" 
           onClick={handleLogin} 
@@ -96,16 +94,6 @@ const LoginCard = ({
           ) : (
             "Entrar com Microsoft"
           )}
-        </Button>
-        <Button 
-          className="w-full" 
-          variant="outline" 
-          onClick={() => {
-            setShowConfigSource(true);
-            handleConfig();
-          }}
-        >
-          {hasMinimumConfig ? "Editar Configuração Azure AD" : "Configurar Azure AD"}
         </Button>
       </CardFooter>
     </Card>

@@ -41,16 +41,11 @@ const Login = () => {
         title: "Configuração necessária",
         description: "Configure o Azure AD antes de fazer login."
       });
-      navigate('/auth-config');
       return;
     }
 
     setLoginInProgress(true);
     login();
-  };
-
-  const handleConfig = () => {
-    navigate('/auth-config');
   };
 
   if (isLoading || checkingConfig) {
@@ -61,7 +56,6 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <LoginCard 
         handleLogin={handleLogin}
-        handleConfig={handleConfig}
         loginInProgress={loginInProgress}
         configCheck={configCheck}
       />
