@@ -6,26 +6,59 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Info } from 'lucide-react';
+import { AlertCircle, Info, Lock } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 const AuthConfig = () => {
   const [clientId, setClientId] = useState<string>('');
   const [tenant, setTenant] = useState<string>('');
   const [clientSecret, setClientSecret] = useState<string>('');
   const [showSecret, setShowSecret] = useState<boolean>(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState<boolean>(true);
+  const [password, setPassword] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
+  const [authenticated, setAuthenticated] = useState<boolean>(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const ADMIN_PASSWORD = "AMLvVk@C@N!Ztgf%k9aU";
+
   useEffect(() => {
-    // Carregar configurações salvas
-    const savedClientId = localStorage.getItem('azure_ad_client_id');
-    const savedTenant = localStorage.getItem('azure_ad_tenant');
-    const savedClientSecret = localStorage.getItem('azure_ad_client_secret');
-    
-    if (savedClientId) setClientId(savedClientId);
-    if (savedTenant) setTenant(savedTenant);
-    if (savedClientSecret) setClientSecret(savedClientSecret);
+    // Check if already authenticated
+    const isAuthenticated = sessionStorage.getItem('admin_authenticated');
+    if (isAuthenticated === 'true') {
+      setAuthenticated(true);
+      setShowPasswordDialog(false);
+      
+      // Only load settings if authenticated
+      const savedClientId = localStorage.getItem('azure_ad_client_id');
+      const savedTenant = localStorage.getItem('azure_ad_tenant');
+      const savedClientSecret = localStorage.getItem('azure_ad_client_secret');
+      
+      if (savedClientId) setClientId(savedClientId);
+      if (savedTenant) setTenant(savedTenant);
+      if (savedClientSecret) setClientSecret(savedClientSecret);
+    }
   }, []);
+
+  const handlePasswordSubmit = () => {
+    if (password === ADMIN_PASSWORD) {
+      setAuthenticated(true);
+      setShowPasswordDialog(false);
+      sessionStorage.setItem('admin_authenticated', 'true');
+      
+      // Load settings after authentication
+      const savedClientId = localStorage.getItem('azure_ad_client_id');
+      const savedTenant = localStorage.getItem('azure_ad_tenant');
+      const savedClientSecret = localStorage.getItem('azure_ad_client_secret');
+      
+      if (savedClientId) setClientId(savedClientId);
+      if (savedTenant) setTenant(savedTenant);
+      if (savedClientSecret) setClientSecret(savedClientSecret);
+    } else {
+      setPasswordError('Senha incorreta. Tente novamente.');
+    }
+  };
 
   const handleSave = () => {
     if (!clientId || !tenant) {
@@ -68,6 +101,52 @@ const AuthConfig = () => {
   const handleBackToLogin = () => {
     navigate('/login');
   };
+
+  if (!authenticated) {
+    return (
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Autenticação Administrativa</DialogTitle>
+            <DialogDescription>
+              Digite a senha de administrador para acessar as configurações do Azure AD
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <div className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-blue-500" />
+              <Label htmlFor="password" className="font-medium">
+                Senha de Administrador
+              </Label>
+            </div>
+            <Input 
+              id="password"
+              type="password"
+              placeholder="Digite a senha de administrador"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handlePasswordSubmit();
+                }
+              }}
+            />
+            {passwordError && (
+              <p className="text-red-500 text-sm">{passwordError}</p>
+            )}
+          </div>
+          <DialogFooter className="flex space-x-2">
+            <Button variant="outline" onClick={() => navigate('/login')}>
+              Cancelar
+            </Button>
+            <Button onClick={handlePasswordSubmit}>
+              Acessar Configurações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">

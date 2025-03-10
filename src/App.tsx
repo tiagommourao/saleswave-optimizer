@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
@@ -51,10 +52,19 @@ function App() {
             <Route path="/auth-config" element={<AuthConfig />} />
             <Route path="/auth-callback" element={<AuthCallback />} />
             <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
-            <Route path="/meus-clientes" element={<PrivateRoute><MyClients /></PrivateRoute>} />
-            <Route path="/novo-pedido" element={<PrivateRoute><NewOrder /></PrivateRoute>} />
-            <Route path="/catalogo-produtos" element={<PrivateRoute><ProductCatalog /></PrivateRoute>} />
+            
+            {/* Updated routes to match Navigation component links */}
             <Route path="/relatorios" element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
+            <Route path="/novo-pedido" element={<PrivateRoute><NewOrder /></PrivateRoute>} />
+            <Route path="/meus-clientes" element={<PrivateRoute><MyClients /></PrivateRoute>} />
+            <Route path="/catalogo-produtos" element={<PrivateRoute><ProductCatalog /></PrivateRoute>} />
+            
+            {/* Legacy route paths - redirect to new paths */}
+            <Route path="/reports" element={<Navigate to="/relatorios" replace />} />
+            <Route path="/new-order" element={<Navigate to="/novo-pedido" replace />} />
+            <Route path="/my-clients" element={<Navigate to="/meus-clientes" replace />} />
+            <Route path="/product-catalog" element={<Navigate to="/catalogo-produtos" replace />} />
+            
             <Route path="/404" element={<NotFound />} />
             <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
