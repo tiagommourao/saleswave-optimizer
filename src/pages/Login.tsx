@@ -5,20 +5,30 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Settings } from 'lucide-react';
+import { Loader2, Settings, AlertCircle } from 'lucide-react';
 
 const Login = () => {
   const { login, isAuthenticated, error, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loginInProgress, setLoginInProgress] = useState(false);
-  const [configCheck, setConfigCheck] = useState(false);
+  const [configCheck, setConfigCheck] = useState({
+    clientId: false,
+    tenant: false,
+    clientSecret: false
+  });
 
   // Verifica configurações ao carregar
   useEffect(() => {
     const clientId = localStorage.getItem('azure_ad_client_id');
     const tenant = localStorage.getItem('azure_ad_tenant');
-    setConfigCheck(!!clientId && !!tenant);
+    const clientSecret = localStorage.getItem('azure_ad_client_secret');
+    
+    setConfigCheck({
+      clientId: !!clientId,
+      tenant: !!tenant,
+      clientSecret: !!clientSecret
+    });
   }, []);
 
   useEffect(() => {
@@ -71,13 +81,15 @@ const Login = () => {
     );
   }
 
+  const hasMinimumConfig = configCheck.clientId && configCheck.tenant;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">CISER</CardTitle>
           <CardDescription>
-            {configCheck 
+            {hasMinimumConfig 
               ? "Entre com sua conta Microsoft para acessar o sistema" 
               : "Configure o Azure AD para acessar o sistema"}
           </CardDescription>
@@ -90,11 +102,21 @@ const Login = () => {
               className="w-32 h-32 mx-auto mb-6" 
             />
           </div>
-          {!configCheck && (
+          
+          {!hasMinimumConfig && (
             <div className="rounded-md bg-amber-50 dark:bg-amber-900/30 p-3 text-sm text-amber-800 dark:text-amber-200">
               <div className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
-                <p>Você precisa configurar o Azure AD antes de fazer login.</p>
+                <p>Você precisa configurar o Client ID e Tenant antes de fazer login.</p>
+              </div>
+            </div>
+          )}
+          
+          {hasMinimumConfig && !configCheck.clientSecret && (
+            <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/30 p-3 text-sm text-yellow-800 dark:text-yellow-200">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <p>O Client Secret não está configurado. Isso pode ser necessário para alguns tipos de aplicativos Azure AD.</p>
               </div>
             </div>
           )}
@@ -103,7 +125,7 @@ const Login = () => {
           <Button 
             className="w-full" 
             onClick={handleLogin} 
-            disabled={loginInProgress || !configCheck}
+            disabled={loginInProgress || !hasMinimumConfig}
           >
             {loginInProgress ? (
               <>
@@ -115,7 +137,7 @@ const Login = () => {
             )}
           </Button>
           <Button className="w-full" variant="outline" onClick={handleConfig}>
-            {configCheck ? "Editar Configuração Azure AD" : "Configurar Azure AD"}
+            {hasMinimumConfig ? "Editar Configuração Azure AD" : "Configurar Azure AD"}
           </Button>
         </CardFooter>
       </Card>

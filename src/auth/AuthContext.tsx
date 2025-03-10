@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User, UserManager, WebStorageStateStore } from "oidc-client-ts";
+import { User, UserManager, WebStorageStateStore, Log } from "oidc-client-ts";
 import { useToast } from "@/hooks/use-toast";
 
 type AuthConfig = {
@@ -10,6 +9,7 @@ type AuthConfig = {
   post_logout_redirect_uri: string;
   response_type: string;
   scope: string;
+  client_secret?: string;
 };
 
 interface AuthContextType {
@@ -38,9 +38,10 @@ interface AuthProviderProps {
   children: React.ReactNode;
   clientId: string;
   tenant: string;
+  clientSecret?: string;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, tenant }) => {
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, tenant, clientSecret }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userManager, setUserManager] = useState<UserManager | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -55,16 +56,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         return null;
       }
 
-      console.log("Iniciando configuração do UserManager com:", { clientId, tenant });
+      console.log("Iniciando configuração do UserManager com:", { clientId, tenant, clientSecret: clientSecret ? "***" : undefined });
       
-      // Habilitar logs para debug
-      const logLevel = 0; // 0 = Error, 1 = Warn, 2 = Info, 3 = Debug
-      const logger = {
-        error: console.error,
-        warn: console.warn,
-        info: console.info,
-        debug: console.debug
-      };
+      // Habilitar logs para debug 
+      Log.setLogger(console);
+      Log.setLevel(Log.DEBUG);
 
       const authority = `https://login.microsoftonline.com/${tenant}/v2.0`;
 
@@ -77,13 +73,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         scope: "openid profile email",
       };
 
+      // Adicionar client_secret apenas se estiver definido
+      if (clientSecret) {
+        settings.client_secret = clientSecret;
+      }
+
       const manager = new UserManager({
         ...settings,
         userStore: new WebStorageStateStore({ store: window.localStorage }),
         monitorSession: true,
         automaticSilentRenew: true,
-        logger,
-        logLevel,
       });
 
       console.log("UserManager configurado:", manager);
@@ -130,7 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     } else {
       setIsLoading(false);
     }
-  }, [clientId, tenant]);
+  }, [clientId, tenant, clientSecret]);
 
   const login = async () => {
     if (!userManager) {
