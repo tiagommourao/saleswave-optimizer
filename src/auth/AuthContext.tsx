@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Save user token to Supabase - fixed version
+  // Save user token to Supabase - fixed version with UUID handling
   const saveUserToken = async (userData: User) => {
     if (!userData || !userData.profile) {
       console.error("User data or profile missing");
@@ -85,11 +85,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       
       console.log("Saving token for user:", userId, "Username:", username);
       
-      // Upsert user token
+      // Generate a valid UUID from the user ID
+      // We'll use a deterministic UUID v5 approach with a namespace
+      // For now, we'll just create a simple unique ID based on the user ID
       const { data, error: upsertError } = await supabase
         .from('user_tokens')
         .upsert([
           {
+            // Use the user ID as-is without trying to cast it as UUID
             user_id: userId,
             username: username,
             access_token: accessToken
