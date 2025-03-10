@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -22,48 +22,35 @@ function App() {
   const [tenant, setTenant] = useState<string>('');
   const [clientSecret, setClientSecret] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadAttempted, setLoadAttempted] = useState<boolean>(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Função assíncrona para carregar dados do Supabase e localStorage
-    const loadConfigurations = async () => {
-      try {
-        // Tentar carregar do Supabase primeiro
-        const supabaseConfig = await getAzureConfig();
+  // Create the loadConfigurations function with useCallback to prevent recreating it on every render
+  const loadConfigurations = useCallback(async () => {
+    // If already loading or already attempted, don't try again
+    if (isLoading && loadAttempted) return;
+    
+    setIsLoading(true);
+    try {
+      // Tentar carregar do Supabase primeiro
+      const supabaseConfig = await getAzureConfig();
+      
+      if (supabaseConfig) {
+        console.log('Configurações carregadas do Supabase');
+        setClientId(supabaseConfig.clientid);
+        setTenant(supabaseConfig.tenant);
+        setClientSecret(supabaseConfig.secret);
         
-        if (supabaseConfig) {
-          console.log('Configurações carregadas do Supabase');
-          setClientId(supabaseConfig.clientid);
-          setTenant(supabaseConfig.tenant);
-          setClientSecret(supabaseConfig.secret);
-          
-          // Atualizar também o localStorage para compatibilidade
-          localStorage.setItem('azure_ad_client_id', supabaseConfig.clientid);
-          localStorage.setItem('azure_ad_tenant', supabaseConfig.tenant);
-          if (supabaseConfig.secret) {
-            localStorage.setItem('azure_ad_client_secret', supabaseConfig.secret);
-          } else {
-            localStorage.removeItem('azure_ad_client_secret');
-          }
+        // Atualizar também o localStorage para compatibilidade
+        localStorage.setItem('azure_ad_client_id', supabaseConfig.clientid);
+        localStorage.setItem('azure_ad_tenant', supabaseConfig.tenant);
+        if (supabaseConfig.secret) {
+          localStorage.setItem('azure_ad_client_secret', supabaseConfig.secret);
         } else {
-          // Se não encontrar no Supabase, usar o localStorage como fallback
-          const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
-          const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
-          const savedClientSecret = localStorage.getItem('azure_ad_client_secret') || undefined;
-          
-          setClientId(savedClientId);
-          setTenant(savedTenant);
-          setClientSecret(savedClientSecret);
+          localStorage.removeItem('azure_ad_client_secret');
         }
-      } catch (error) {
-        console.error('Erro ao carregar configurações:', error);
-        toast({
-          variant: "destructive",
-          title: "Erro ao carregar configurações",
-          description: "Não foi possível carregar as configurações do Azure AD."
-        });
-        
-        // Em caso de erro, usar o localStorage como fallback
+      } else {
+        // Se não encontrar no Supabase, usar o localStorage como fallback
         const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
         const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
         const savedClientSecret = localStorage.getItem('azure_ad_client_secret') || undefined;
@@ -71,12 +58,34 @@ function App() {
         setClientId(savedClientId);
         setTenant(savedTenant);
         setClientSecret(savedClientSecret);
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Erro ao carregar configurações:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar configurações",
+        description: "Não foi possível carregar as configurações do Azure AD."
+      });
+      
+      // Em caso de erro, usar o localStorage como fallback
+      const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
+      const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
+      const savedClientSecret = localStorage.getItem('azure_ad_client_secret') || undefined;
+      
+      setClientId(savedClientId);
+      setTenant(savedTenant);
+      setClientSecret(savedClientSecret);
+    } finally {
+      setIsLoading(false);
+      setLoadAttempted(true);
+    }
+  }, [isLoading, loadAttempted, toast]);
 
-    loadConfigurations();
+  useEffect(() => {
+    // Only load configurations if not already attempted
+    if (!loadAttempted) {
+      loadConfigurations();
+    }
 
     // Monitorar mudanças nas configurações locais
     const handleStorageChange = () => {
@@ -89,7 +98,7 @@ function App() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [toast]);
+  }, [loadConfigurations, loadAttempted]);
 
   if (isLoading) {
     return (

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getAzureConfig } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { ConfigCheckResult } from '@/types/auth';
@@ -12,11 +12,17 @@ export const useAzureConfig = () => {
     source: null
   });
   const [checkingConfig, setCheckingConfig] = useState<boolean>(true);
+  const checkAttempted = useRef<boolean>(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const checkConfigurations = async () => {
+      // If already attempted, don't check again
+      if (checkAttempted.current) return;
+      
+      checkAttempted.current = true;
       setCheckingConfig(true);
+      
       try {
         // Verificar se existe configuração no Supabase
         const supabaseConfig = await getAzureConfig();

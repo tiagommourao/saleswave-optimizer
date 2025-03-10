@@ -8,7 +8,7 @@ import LoadingSpinner from '@/components/auth/LoadingSpinner';
 const AuthConfig = () => {
   const [showPasswordDialog, setShowPasswordDialog] = useState<boolean>(true);
   const [authenticated, setAuthenticated] = useState<boolean>(false);
-  const { clientId, tenant, clientSecret, isLoading, loadSettings } = useAuthConfig();
+  const { clientId, tenant, clientSecret, isLoading, loadSettings, loadAttempted } = useAuthConfig();
 
   useEffect(() => {
     // Check if already authenticated
@@ -17,17 +17,21 @@ const AuthConfig = () => {
       setAuthenticated(true);
       setShowPasswordDialog(false);
       
-      // Only load settings if authenticated
-      loadSettings();
+      // Only load settings if authenticated and not already loaded
+      if (!loadAttempted) {
+        loadSettings();
+      }
     }
-  }, [loadSettings]);
+  }, [loadSettings, loadAttempted]);
 
   const handleAuthenticate = () => {
     setAuthenticated(true);
     setShowPasswordDialog(false);
     
-    // Load settings after authentication
-    loadSettings();
+    // Load settings after authentication if not already loaded
+    if (!loadAttempted) {
+      loadSettings();
+    }
   };
 
   if (!authenticated) {

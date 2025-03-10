@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { getAzureConfig } from '@/lib/supabase';
 
@@ -8,9 +8,13 @@ export const useAuthConfig = () => {
   const [tenant, setTenant] = useState<string>('');
   const [clientSecret, setClientSecret] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loadAttempted, setLoadAttempted] = useState<boolean>(false);
   const { toast } = useToast();
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
+    // If we've already attempted to load, don't try again
+    if (isLoading) return;
+    
     setIsLoading(true);
     try {
       // Tentar carregar do Supabase primeiro
@@ -61,18 +65,16 @@ export const useAuthConfig = () => {
       if (savedClientSecret) setClientSecret(savedClientSecret);
     } finally {
       setIsLoading(false);
+      setLoadAttempted(true);
     }
-  };
-
-  useEffect(() => {
-    // Not loading settings on mount - this will be done when the user is authenticated
-  }, []);
+  }, [toast, isLoading]);
 
   return { 
     clientId, 
     tenant, 
     clientSecret, 
     isLoading, 
-    loadSettings 
+    loadSettings,
+    loadAttempted
   };
 };
