@@ -48,41 +48,78 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Save user token to Supabase
+  // Save user token to Supabase - fixed version
   const saveUserToken = async (userData: User) => {
-    if (!userData || !userData.profile) return;
+    if (!userData || !userData.profile) {
+      console.error("User data or profile missing");
+      return;
+    }
     
     try {
+      console.log("Attempting to save user token to Supabase...");
+      
+      // Get user information
+      const userId = userData.profile.sub;
       const username = userData.profile.name || userData.profile.email || 'unknown';
       const accessToken = userData.access_token;
       
-      if (!accessToken) {
-        console.error("No access token available to save");
+      if (!userId) {
+        console.error("User ID is missing from profile", userData.profile);
+        toast({
+          variant: "destructive",
+          title: "Erro ao salvar token",
+          description: "ID do usuário não encontrado no perfil."
+        });
         return;
       }
       
-      const { error: upsertError } = await supabase
+      if (!accessToken) {
+        console.error("No access token available to save");
+        toast({
+          variant: "destructive",
+          title: "Erro ao salvar token",
+          description: "Token de acesso não disponível."
+        });
+        return;
+      }
+      
+      console.log("Saving token for user:", userId, "Username:", username);
+      
+      // Upsert user token
+      const { data, error: upsertError } = await supabase
         .from('user_tokens')
         .upsert([
           {
-            user_id: userData.profile.sub,
+            user_id: userId,
             username: username,
             access_token: accessToken
           }
-        ], { onConflict: 'user_id' });
+        ], { 
+          onConflict: 'user_id',
+          ignoreDuplicates: false
+        });
       
       if (upsertError) {
         console.error("Error saving user token:", upsertError);
         toast({
           variant: "destructive",
           title: "Erro ao salvar token",
-          description: "Não foi possível salvar o token de acesso."
+          description: "Não foi possível salvar o token de acesso: " + upsertError.message
         });
       } else {
-        console.log("User token saved successfully");
+        console.log("User token saved successfully:", data);
+        toast({
+          title: "Token salvo",
+          description: "Token de acesso salvo com sucesso."
+        });
       }
     } catch (err) {
       console.error("Error in saveUserToken:", err);
+      toast({
+        variant: "destructive",
+        title: "Erro ao salvar token",
+        description: "Ocorreu um erro ao salvar o token de acesso."
+      });
     }
   };
 

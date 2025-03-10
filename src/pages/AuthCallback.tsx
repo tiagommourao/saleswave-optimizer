@@ -21,6 +21,13 @@ const AuthCallback = () => {
     userManager.signinRedirectCallback()
       .then((user) => {
         console.log("Login bem-sucedido:", user);
+        
+        // Log user profile to help with debugging
+        if (user.profile) {
+          console.log("User profile:", user.profile);
+          console.log("User ID:", user.profile.sub);
+        }
+        
         toast({
           title: "Autenticação bem-sucedida",
           description: "Você está conectado e será redirecionado."
