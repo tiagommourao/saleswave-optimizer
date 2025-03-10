@@ -56,7 +56,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         return null;
       }
 
-      console.log("Iniciando configuração do UserManager com:", { clientId, tenant, clientSecret: clientSecret ? "***" : undefined });
+      console.log("Iniciando configuração do UserManager com:", { 
+        clientId, 
+        tenant, 
+        clientSecret: clientSecret ? "Presente (não exibido por segurança)" : "Não fornecido" 
+      });
       
       // Habilitar logs para debug 
       Log.setLogger(console);
@@ -64,26 +68,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
 
       const authority = `https://login.microsoftonline.com/${tenant}/v2.0`;
 
-      const settings: AuthConfig = {
+      const settings: any = {
         authority,
         client_id: clientId,
         redirect_uri: `${window.location.origin}/auth-callback`,
         post_logout_redirect_uri: window.location.origin,
         response_type: "code",
         scope: "openid profile email",
+        automaticSilentRenew: true,
+        monitorSession: true,
+        userStore: new WebStorageStateStore({ store: window.localStorage }),
       };
 
       // Adicionar client_secret apenas se estiver definido
       if (clientSecret) {
+        // O client_secret deve ser fornecido sem modificações
         settings.client_secret = clientSecret;
+        console.log("Client secret foi adicionado à configuração");
       }
 
-      const manager = new UserManager({
+      console.log("Configurações finais (sem exibir secrets):", {
         ...settings,
-        userStore: new WebStorageStateStore({ store: window.localStorage }),
-        monitorSession: true,
-        automaticSilentRenew: true,
+        client_secret: settings.client_secret ? "***" : undefined
       });
+
+      const manager = new UserManager(settings);
 
       console.log("UserManager configurado:", manager);
       return manager;

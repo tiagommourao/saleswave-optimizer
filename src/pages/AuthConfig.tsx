@@ -6,12 +6,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 
 const AuthConfig = () => {
   const [clientId, setClientId] = useState<string>('');
   const [tenant, setTenant] = useState<string>('');
   const [clientSecret, setClientSecret] = useState<string>('');
+  const [showSecret, setShowSecret] = useState<boolean>(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -36,14 +37,21 @@ const AuthConfig = () => {
       return;
     }
 
-    localStorage.setItem('azure_ad_client_id', clientId);
-    localStorage.setItem('azure_ad_tenant', tenant);
+    // Remover espaços em branco extras que possam ter sido copiados
+    const trimmedClientId = clientId.trim();
+    const trimmedTenant = tenant.trim();
+    const trimmedClientSecret = clientSecret.trim();
+
+    localStorage.setItem('azure_ad_client_id', trimmedClientId);
+    localStorage.setItem('azure_ad_tenant', trimmedTenant);
     
     // Salvar o Client Secret apenas se for fornecido
-    if (clientSecret) {
-      localStorage.setItem('azure_ad_client_secret', clientSecret);
+    if (trimmedClientSecret) {
+      localStorage.setItem('azure_ad_client_secret', trimmedClientSecret);
+      console.log("Cliente secret salvo com comprimento:", trimmedClientSecret.length);
     } else {
       localStorage.removeItem('azure_ad_client_secret');
+      console.log("Cliente secret removido do localStorage");
     }
 
     toast({
@@ -100,14 +108,29 @@ const AuthConfig = () => {
           
           <div className="space-y-2">
             <Label htmlFor="clientSecret">Client Secret</Label>
-            <Input
-              id="clientSecret"
-              type="password"
-              placeholder="Digite o Client Secret"
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
-            />
-            <p className="text-xs text-gray-500">Necessário para alguns fluxos de autenticação</p>
+            <div className="relative">
+              <Input
+                id="clientSecret"
+                type={showSecret ? "text" : "password"}
+                placeholder="Digite o Client Secret"
+                value={clientSecret}
+                onChange={(e) => setClientSecret(e.target.value)}
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                onClick={() => setShowSecret(!showSecret)}
+              >
+                {showSecret ? "Ocultar" : "Mostrar"}
+              </button>
+            </div>
+            <div className="flex items-start gap-2 mt-2 text-xs text-gray-500">
+              <Info className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>
+                Necessário para autenticação. Certifique-se de copiar o valor exato do Client Secret do Azure Portal, 
+                sem espaços adicionais. Se estiver enfrentando erros, tente gerar um novo secret no Azure Portal.
+              </p>
+            </div>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
