@@ -32,9 +32,9 @@ const Login = () => {
         if (supabaseConfig) {
           // Configuração encontrada no Supabase
           setConfigCheck({
-            clientId: !!supabaseConfig.client_id,
+            clientId: !!supabaseConfig.clientid,
             tenant: !!supabaseConfig.tenant,
-            clientSecret: !!supabaseConfig.client_secret,
+            clientSecret: !!supabaseConfig.secret,
             source: "database"
           });
           console.log("Usando configurações do banco de dados");

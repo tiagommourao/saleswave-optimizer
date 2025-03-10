@@ -9,7 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      azure_creds: {
+        Row: {
+          clientid: string | null
+          created_at: string
+          id: number
+          secret: string | null
+          tenant: string | null
+        }
+        Insert: {
+          clientid?: string | null
+          created_at?: string
+          id?: number
+          secret?: string | null
+          tenant?: string | null
+        }
+        Update: {
+          clientid?: string | null
+          created_at?: string
+          id?: number
+          secret?: string | null
+          tenant?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

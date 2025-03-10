@@ -46,9 +46,9 @@ const AuthConfig = () => {
       
       if (supabaseConfig) {
         console.log('Configurações carregadas do Supabase');
-        setClientId(supabaseConfig.client_id);
+        setClientId(supabaseConfig.clientid);
         setTenant(supabaseConfig.tenant);
-        setClientSecret(supabaseConfig.client_secret || '');
+        setClientSecret(supabaseConfig.secret || '');
         
         toast({
           title: "Configurações carregadas",
@@ -125,9 +125,9 @@ const AuthConfig = () => {
     try {
       // Salvar no Supabase
       const saved = await saveAzureConfig({
-        client_id: trimmedClientId,
+        clientid: trimmedClientId,
         tenant: trimmedTenant,
-        client_secret: trimmedClientSecret || undefined
+        secret: trimmedClientSecret || undefined
       });
       
       if (!saved) {

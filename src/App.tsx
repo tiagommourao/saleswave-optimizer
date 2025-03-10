@@ -33,15 +33,15 @@ function App() {
         
         if (supabaseConfig) {
           console.log('Configurações carregadas do Supabase');
-          setClientId(supabaseConfig.client_id);
+          setClientId(supabaseConfig.clientid);
           setTenant(supabaseConfig.tenant);
-          setClientSecret(supabaseConfig.client_secret);
+          setClientSecret(supabaseConfig.secret);
           
           // Atualizar também o localStorage para compatibilidade
-          localStorage.setItem('azure_ad_client_id', supabaseConfig.client_id);
+          localStorage.setItem('azure_ad_client_id', supabaseConfig.clientid);
           localStorage.setItem('azure_ad_tenant', supabaseConfig.tenant);
-          if (supabaseConfig.client_secret) {
-            localStorage.setItem('azure_ad_client_secret', supabaseConfig.client_secret);
+          if (supabaseConfig.secret) {
+            localStorage.setItem('azure_ad_client_secret', supabaseConfig.secret);
           } else {
             localStorage.removeItem('azure_ad_client_secret');
           }

@@ -16,19 +16,19 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 // Definir os tipos para nossas configurações
 export interface AzureConfig {
   id?: string;
-  client_id: string;
+  clientid: string;
   tenant: string;
-  client_secret?: string;
-  updated_at?: string;
+  secret?: string;
+  created_at?: string;
 }
 
 // Função para buscar a configuração
 export async function getAzureConfig(): Promise<AzureConfig | null> {
   try {
     const { data, error } = await supabase
-      .from('azure_configs')
+      .from('azure_creds')
       .select('*')
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(1)
       .single();
 
@@ -44,13 +44,12 @@ export async function getAzureConfig(): Promise<AzureConfig | null> {
 export async function saveAzureConfig(config: AzureConfig): Promise<boolean> {
   try {
     const { error } = await supabase
-      .from('azure_configs')
+      .from('azure_creds')
       .insert([
         {
-          client_id: config.client_id.trim(),
+          clientid: config.clientid.trim(),
           tenant: config.tenant.trim(),
-          client_secret: config.client_secret?.trim() || null,
-          updated_at: new Date().toISOString()
+          secret: config.secret?.trim() || null,
         }
       ]);
 
