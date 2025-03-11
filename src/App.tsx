@@ -11,11 +11,13 @@ import MyClients from './pages/MyClients';
 import NewOrder from './pages/NewOrder';
 import ProductCatalog from './pages/ProductCatalog';
 import ReportsPage from './pages/Reports';
+import ObservabilityPage from './pages/Observability';
 import NotFound from './pages/NotFound';
 import { ThemeProvider } from './components/ThemeProvider';
 import { Toaster } from './components/ui/toaster';
 import { getAzureConfig } from './lib/supabase';
 import { useToast } from './hooks/use-toast';
+import { apiMonitoring } from './observability/apiMonitoring';
 
 function App() {
   const [clientId, setClientId] = useState<string>('');
@@ -105,11 +107,13 @@ function App() {
             <Route path="/novo-pedido" element={<PrivateRoute><NewOrder /></PrivateRoute>} />
             <Route path="/meus-clientes" element={<PrivateRoute><MyClients /></PrivateRoute>} />
             <Route path="/catalogo-produtos" element={<PrivateRoute><ProductCatalog /></PrivateRoute>} />
+            <Route path="/observabilidade" element={<PrivateRoute><ObservabilityPage /></PrivateRoute>} />
             
             <Route path="/reports" element={<Navigate to="/relatorios" replace />} />
             <Route path="/new-order" element={<Navigate to="/novo-pedido" replace />} />
             <Route path="/my-clients" element={<Navigate to="/meus-clientes" replace />} />
             <Route path="/product-catalog" element={<Navigate to="/catalogo-produtos" replace />} />
+            <Route path="/observability" element={<Navigate to="/observabilidade" replace />} />
             
             <Route path="/404" element={<NotFound />} />
             <Route path="*" element={<Navigate to="/404" replace />} />
