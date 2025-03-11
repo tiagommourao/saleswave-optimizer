@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, UserManager, WebStorageStateStore, Log } from "oidc-client-ts";
 import { useToast } from "@/hooks/use-toast";
@@ -80,19 +81,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         raw_profile: userData.profile
       };
 
-      const { error: upsertError } = await supabase
+      // Primeiro verificamos se o usuário já existe
+      const { data: existingUser, error: fetchError } = await supabase
         .from('user_info')
-        .upsert([userInfo], {
-          onConflict: 'user_id',
-          ignoreDuplicates: false
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error("Error checking if user exists:", fetchError);
+        toast({
+          variant: "destructive",
+          title: "Erro ao verificar usuário",
+          description: "Não foi possível verificar se o usuário já existe: " + fetchError.message
         });
+        return;
+      }
+
+      let result;
+
+      if (existingUser) {
+        // Se o usuário existe, atualiza os dados
+        result = await supabase
+          .from('user_info')
+          .update(userInfo)
+          .eq('user_id', userId);
+      } else {
+        // Se o usuário não existe, insere novos dados
+        result = await supabase
+          .from('user_info')
+          .insert([userInfo]);
+      }
       
-      if (upsertError) {
-        console.error("Error saving user info:", upsertError);
+      if (result.error) {
+        console.error("Error saving user info:", result.error);
         toast({
           variant: "destructive",
           title: "Erro ao salvar informações",
-          description: "Não foi possível salvar as informações do usuário: " + upsertError.message
+          description: "Não foi possível salvar as informações do usuário: " + result.error.message
         });
       } else {
         console.log("User info saved successfully");
@@ -148,32 +174,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       
       console.log("Saving token for user:", userId, "Username:", username);
       
-      // Generate a valid UUID from the user ID
-      // We'll use a deterministic UUID v5 approach with a namespace
-      // For now, we'll just create a simple unique ID based on the user ID
-      const { data, error: upsertError } = await supabase
+      // Primeiro verificamos se o usuário já existe
+      const { data: existingToken, error: fetchError } = await supabase
         .from('user_tokens')
-        .upsert([
-          {
-            // Use the user ID as-is without trying to cast it as UUID
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+        
+      if (fetchError) {
+        console.error("Error checking if token exists:", fetchError);
+        toast({
+          variant: "destructive",
+          title: "Erro ao verificar token",
+          description: "Não foi possível verificar se o token já existe: " + fetchError.message
+        });
+        return;
+      }
+      
+      let result;
+      
+      if (existingToken) {
+        // Se o token existe, atualiza
+        result = await supabase
+          .from('user_tokens')
+          .update({
+            username: username,
+            access_token: accessToken
+          })
+          .eq('user_id', userId);
+      } else {
+        // Se o token não existe, insere
+        result = await supabase
+          .from('user_tokens')
+          .insert([{
             user_id: userId,
             username: username,
             access_token: accessToken
-          }
-        ], { 
-          onConflict: 'user_id',
-          ignoreDuplicates: false
-        });
+          }]);
+      }
       
-      if (upsertError) {
-        console.error("Error saving user token:", upsertError);
+      if (result.error) {
+        console.error("Error saving user token:", result.error);
         toast({
           variant: "destructive",
           title: "Erro ao salvar token",
-          description: "Não foi possível salvar o token de acesso: " + upsertError.message
+          description: "Não foi possível salvar o token de acesso: " + result.error.message
         });
       } else {
-        console.log("User token saved successfully:", data);
+        console.log("User token saved successfully:", result.data);
         toast({
           title: "Token salvo",
           description: "Token de acesso salvo com sucesso."
