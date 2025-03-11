@@ -79,18 +79,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         user_id: userId,
         email: userData.profile.email || userData.profile.preferred_username || null,
         display_name: userData.profile.name || null,
-        first_name: userData.profile.given_name || null,
-        last_name: userData.profile.family_name || null,
-        profile_image_url: userData.profile.picture || null,
-        job_title: userData.profile.jobTitle || 
-                  (userData.profile.extension_JobTitle ? userData.profile.extension_JobTitle : null) || 
-                  null,
-        department: userData.profile.department || 
-                   (userData.profile.extension_Department ? userData.profile.extension_Department : null) || 
-                   null,
-        office_location: userData.profile.officeLocation || 
-                        (userData.profile.extension_OfficeLocation ? userData.profile.extension_OfficeLocation : null) || 
-                        null,
+        first_name: userData.profile.givenName || null,
+        last_name: userData.profile.surname || null,
+        profile_image_url: userData.profile.thumbnailPhoto || userData.profile.picture || null,
+        job_title: userData.profile.jobTitle || null,
+        department: userData.profile.department || null,
+        office_location: userData.profile.officeLocation || null,
         user_agent: userAgent,
         ip_address: ipAddress,
         id_token: userData.id_token,
@@ -399,5 +393,3 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     </AuthContext.Provider>
   );
 };
-
-
