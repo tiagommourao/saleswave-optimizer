@@ -48,6 +48,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  const fetchGraphProfile = async (accessToken: string) => {
+    try {
+      console.log("Fetching user profile from Microsoft Graph API...");
+      
+      const response = await fetch("https://graph.microsoft.com/v1.0/me", {
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Graph API error:", response.status, errorText);
+        toast({
+          variant: "destructive",
+          title: "Erro ao buscar perfil",
+          description: `Erro ao buscar perfil do Microsoft Graph: ${response.status}`
+        });
+        return null;
+      }
+      
+      const profileData = await response.json();
+      console.log("Graph API response:", profileData);
+      
+      // Try to fetch profile photo
+      let photoUrl = null;
+      try {
+        const photoResponse = await fetch("https://graph.microsoft.com/v1.0/me/photo/$value", {
+          headers: {
+            "Authorization": `Bearer ${accessToken}`
+          }
+        });
+        
+        if (photoResponse.ok) {
+          const blob = await photoResponse.blob();
+          photoUrl = URL.createObjectURL(blob);
+          console.log("Retrieved profile photo URL:", photoUrl);
+        } else {
+          console.log("No profile photo available:", photoResponse.status);
+        }
+      } catch (photoError) {
+        console.error("Error fetching profile photo:", photoError);
+      }
+      
+      return {
+        ...profileData,
+        photoUrl
+      };
+    } catch (err) {
+      console.error("Error fetching Graph profile:", err);
+      toast({
+        variant: "destructive",
+        title: "Erro ao buscar perfil",
+        description: "Não foi possível buscar informações do Microsoft Graph"
+      });
+      return null;
+    }
+  };
+
   const saveUserInfo = async (userData: User) => {
     if (!userData || !userData.profile) {
       console.error("User data or profile missing");
@@ -58,7 +118,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       console.log("Attempting to save user info to Supabase...");
       
       // Log the entire profile object for debugging
-      console.log("User profile data:", userData.profile);
+      console.log("User profile data from token:", userData.profile);
       console.log("Access token:", userData.access_token);
       
       // Extract user_id from profile
@@ -82,32 +142,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       // Get user agent
       const userAgent = window.navigator.userAgent;
       
-      // Extract additional claim fields from the token
-      // Microsoft Graph API often includes these fields in different locations
-      // Extract them with detailed logging
-      const extractField = (fieldName: string) => {
-        // Try different possible locations for the field
-        const value = userData.profile[fieldName] || 
-                     userData.profile[`extension_${fieldName}`] || 
-                     userData.profile[`${fieldName}`] ||
-                     (userData.profile.extension && userData.profile.extension[fieldName]) ||
-                     null;
-        
-        console.log(`Extracting ${fieldName}:`, value);
-        return value;
-      };
+      // Get additional user information from Microsoft Graph API
+      const graphProfile = await fetchGraphProfile(userData.access_token);
+      console.log("Graph profile retrieved:", graphProfile);
       
-      // Map Microsoft Graph API fields to our database fields
-      const email = userData.profile.email || userData.profile.preferred_username || userData.profile.upn || null;
-      const displayName = userData.profile.name || null;
-      const firstName = extractField('givenName');
-      const lastName = extractField('surname');
-      const profileImageUrl = extractField('thumbnailPhoto') || userData.profile.picture || null;
-      const jobTitle = extractField('jobTitle');
-      const department = extractField('department');
-      const officeLocation = extractField('officeLocation');
+      // Prepare user info combining token data and graph API data
+      const email = userData.profile.email || 
+                   userData.profile.preferred_username || 
+                   (graphProfile ? graphProfile.mail || graphProfile.userPrincipalName : null);
+                   
+      const displayName = userData.profile.name || 
+                         (graphProfile ? graphProfile.displayName : null);
+                         
+      const firstName = graphProfile ? graphProfile.givenName : null;
+      const lastName = graphProfile ? graphProfile.surname : null;
+      const jobTitle = graphProfile ? graphProfile.jobTitle : null;
+      const department = graphProfile ? graphProfile.department : null;
+      const officeLocation = graphProfile ? graphProfile.officeLocation : null;
+      const profileImageUrl = graphProfile ? graphProfile.photoUrl : null;
       
-      console.log("Mapped user fields:", {
+      console.log("Final mapped user fields:", {
         email,
         displayName,
         firstName,
@@ -307,7 +361,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         redirect_uri: `${window.location.origin}/auth-callback`,
         post_logout_redirect_uri: window.location.origin,
         response_type: "code",
-        scope: "openid profile email User.Read",
+        scope: "openid profile email User.Read User.ReadBasic.All",
         automaticSilentRenew: true,
         monitorSession: true,
         userStore: new WebStorageStateStore({ store: window.localStorage }),
