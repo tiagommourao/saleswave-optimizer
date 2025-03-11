@@ -1,11 +1,10 @@
 
-import { useState } from 'react';
 import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
 import OrderForm from '@/components/OrderForm';
 
 const NewOrder = () => {
-  // Mock data for the header (same as in Index.tsx)
+  // Mock data for header
   const userInfo = {
     companyName: 'CISER',
     partnerCode: 'P12345',
@@ -14,10 +13,11 @@ const NewOrder = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Header {...userInfo} />
-      <Navigation onTabChange={() => {}} />
-      <main className="flex-1">
+      <Navigation />
+      <main className="flex-1 p-6">
+        <h1 className="text-2xl font-bold mb-6">Novo Pedido</h1>
         <OrderForm />
       </main>
     </div>

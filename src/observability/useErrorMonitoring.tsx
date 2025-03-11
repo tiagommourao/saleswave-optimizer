@@ -1,89 +1,93 @@
 
-import { useEffect, useState } from 'react';
-import { logger } from './logger';
+import { useState, useEffect, ErrorInfo } from 'react';
 import { useAuth } from '@/auth/AuthContext';
+import { logger } from './logger';
 import { useLocation } from 'react-router-dom';
 
-interface ErrorMonitoringProps {
-  componentName: string;
+// Type definition for the error information
+interface ErrorData {
+  error: Error;
+  errorInfo: ErrorInfo | null;
+  componentStack?: string;
+  timestamp: Date;
 }
 
-/**
- * Hook para monitorar erros em componentes React
- */
-export const useErrorMonitoring = ({ componentName }: ErrorMonitoringProps) => {
-  const [error, setError] = useState<Error | null>(null);
+// Hook for monitoring component errors
+export const useErrorMonitoring = (componentName: string) => {
+  const [error, setError] = useState<ErrorData | null>(null);
   const { user } = useAuth();
   const location = useLocation();
-
-  // Capturar e registrar erros não tratados
+  
+  // Log the error when it occurs
   useEffect(() => {
-    const handleError = (event: ErrorEvent) => {
-      logger.error(
-        `Erro não tratado em ${componentName}: ${event.message}`,
-        {
-          stack: event.error?.stack,
-          componentName,
-          errorType: 'Unhandled'
-        },
-        user?.id,
-        location.pathname
-      );
-      setError(event.error);
-    };
-
-    // Capturar erros de promises não tratadas
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      logger.error(
-        `Promise rejeitada não tratada em ${componentName}`,
-        {
-          reason: event.reason,
-          componentName,
-          errorType: 'UnhandledPromiseRejection'
-        },
-        user?.id,
-        location.pathname
-      );
-      if (event.reason instanceof Error) {
-        setError(event.reason);
-      } else {
-        setError(new Error(String(event.reason)));
-      }
-    };
-
-    window.addEventListener('error', handleError);
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
-    return () => {
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-    };
-  }, [componentName, user, location.pathname]);
-
-  // Registrar renderização do componente (pode ser útil para análise de desempenho)
-  useEffect(() => {
-    logger.debug(
-      `Componente ${componentName} montado`,
-      {
+    if (error) {
+      // Create a context object with relevant error details
+      const errorContext = {
         componentName,
-        path: location.pathname
+        errorMessage: error.error.message,
+        errorStack: error.error.stack,
+        componentStack: error.errorInfo?.componentStack || error.componentStack,
+        path: location.pathname,
+        userInfo: user ? {
+          email: user.email,
+          userId: user.id?.toString() || 'unknown', // Fix TS2339 error by adding optional chaining
+        } : null,
+        timestamp: error.timestamp
+      };
+      
+      // Log the error to our logging system
+      logger.error(
+        `Error in component: ${componentName}`,
+        errorContext,
+        user?.id?.toString(), // Fix TS2339 error by adding optional chaining
+        location.pathname
+      );
+    }
+  }, [error, componentName, user, location]);
+  
+  // Error handler function to be used in componentDidCatch
+  const handleComponentError = (error: Error, errorInfo: ErrorInfo) => {
+    setError({
+      error,
+      errorInfo,
+      timestamp: new Date()
+    });
+  };
+  
+  // Function to manually log an error
+  const logError = (error: Error, componentStack?: string) => {
+    // Create the error data object
+    const errorData: ErrorData = {
+      error,
+      errorInfo: null,
+      componentStack,
+      timestamp: new Date()
+    };
+    
+    // Set the error state which will trigger the useEffect hook
+    setError(errorData);
+    
+    // Additionally, log directly for immediate feedback
+    logger.error(
+      `Manual error log from ${componentName}`,
+      {
+        errorMessage: error.message,
+        errorStack: error.stack,
+        componentStack,
+        path: location.pathname,
+        userInfo: user ? {
+          email: user.email,
+          userId: user.id?.toString() || 'unknown', // Fix TS2339 error by adding optional chaining
+        } : null,
       },
-      user?.id,
+      user?.id?.toString(), // Fix TS2339 error by adding optional chaining
       location.pathname
     );
-
-    return () => {
-      logger.debug(
-        `Componente ${componentName} desmontado`,
-        {
-          componentName,
-          path: location.pathname
-        },
-        user?.id,
-        location.pathname
-      );
-    };
-  }, [componentName, user, location.pathname]);
-
-  return { error, setError };
+  };
+  
+  return {
+    error,
+    handleComponentError,
+    logError
+  };
 };

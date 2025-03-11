@@ -30,7 +30,7 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header {...userInfo} />
-      <Navigation onTabChange={setActiveTab} />
+      <Navigation />
       <main className="flex-1">
         {renderActiveContent()}
       </main>
