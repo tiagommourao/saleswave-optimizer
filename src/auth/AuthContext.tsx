@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, UserManager, WebStorageStateStore, Log } from "oidc-client-ts";
 import { useToast } from "@/hooks/use-toast";
@@ -48,7 +47,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Save user info to Supabase
   const saveUserInfo = async (userData: User) => {
     if (!userData || !userData.profile) {
       console.error("User data or profile missing");
@@ -57,6 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     
     try {
       console.log("Attempting to save user info to Supabase...");
+      console.log("User profile data:", userData.profile);
       
       const userId = userData.profile.sub;
       if (!userId) {
@@ -64,24 +63,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         return;
       }
 
-      // Get user agent and construct user info object
+      let ipAddress = '';
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        ipAddress = data.ip;
+        console.log("Retrieved IP address:", ipAddress);
+      } catch (ipError) {
+        console.error("Error getting IP address:", ipError);
+      }
+
       const userAgent = window.navigator.userAgent;
+      
       const userInfo = {
         user_id: userId,
-        email: userData.profile.email,
-        display_name: userData.profile.name,
-        first_name: userData.profile.given_name,
-        last_name: userData.profile.family_name,
-        profile_image_url: userData.profile.picture,
-        job_title: userData.profile.jobTitle,
-        department: userData.profile.department,
-        office_location: userData.profile.officeLocation,
+        email: userData.profile.email || userData.profile.preferred_username || null,
+        display_name: userData.profile.name || null,
+        first_name: userData.profile.given_name || null,
+        last_name: userData.profile.family_name || null,
+        profile_image_url: userData.profile.picture || null,
+        job_title: userData.profile.jobTitle || 
+                  (userData.profile.extension_JobTitle ? userData.profile.extension_JobTitle : null) || 
+                  null,
+        department: userData.profile.department || 
+                   (userData.profile.extension_Department ? userData.profile.extension_Department : null) || 
+                   null,
+        office_location: userData.profile.officeLocation || 
+                        (userData.profile.extension_OfficeLocation ? userData.profile.extension_OfficeLocation : null) || 
+                        null,
         user_agent: userAgent,
+        ip_address: ipAddress,
         id_token: userData.id_token,
-        raw_profile: userData.profile
+        raw_profile: userData.profile,
+        login_timestamp: new Date().toISOString(),
+        last_active: new Date().toISOString()
       };
 
-      // Primeiro verificamos se o usuário já existe
+      console.log("Prepared user info to save:", userInfo);
+
       const { data: existingUser, error: fetchError } = await supabase
         .from('user_info')
         .select('id')
@@ -101,13 +120,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       let result;
 
       if (existingUser) {
-        // Se o usuário existe, atualiza os dados
         result = await supabase
           .from('user_info')
           .update(userInfo)
           .eq('user_id', userId);
       } else {
-        // Se o usuário não existe, insere novos dados
         result = await supabase
           .from('user_info')
           .insert([userInfo]);
@@ -137,7 +154,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     }
   };
 
-  // Save user token to Supabase - fixed version with UUID handling
   const saveUserToken = async (userData: User) => {
     if (!userData || !userData.profile) {
       console.error("User data or profile missing");
@@ -147,7 +163,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     try {
       console.log("Attempting to save user token to Supabase...");
       
-      // Get user information
       const userId = userData.profile.sub;
       const username = userData.profile.name || userData.profile.email || 'unknown';
       const accessToken = userData.access_token;
@@ -174,7 +189,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       
       console.log("Saving token for user:", userId, "Username:", username);
       
-      // Primeiro verificamos se o usuário já existe
       const { data: existingToken, error: fetchError } = await supabase
         .from('user_tokens')
         .select('id')
@@ -194,7 +208,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       let result;
       
       if (existingToken) {
-        // Se o token existe, atualiza
         result = await supabase
           .from('user_tokens')
           .update({
@@ -203,7 +216,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
           })
           .eq('user_id', userId);
       } else {
-        // Se o token não existe, insere
         result = await supabase
           .from('user_tokens')
           .insert([{
@@ -280,7 +292,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       manager.events.addUserLoaded((loadedUser) => {
         console.log("Usuário carregado:", loadedUser);
         setUser(loadedUser);
-        // Save both user token and detailed info when loaded
         saveUserToken(loadedUser);
         saveUserInfo(loadedUser);
         setIsLoading(false);
@@ -297,11 +308,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         setError(error);
       });
 
-      // Tenta obter o usuário atual
       manager.getUser().then((loadedUser) => {
         console.log("Usuario atual verificado:", loadedUser);
         setUser(loadedUser);
-        // Save user token for existing user
         if (loadedUser) {
           saveUserToken(loadedUser);
           saveUserInfo(loadedUser);
@@ -390,3 +399,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     </AuthContext.Provider>
   );
 };
+
+
