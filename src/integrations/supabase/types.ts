@@ -33,6 +33,69 @@ export type Database = {
         }
         Relationships: []
       }
+      user_info: {
+        Row: {
+          created_at: string
+          department: string | null
+          display_name: string | null
+          email: string | null
+          first_name: string | null
+          id: string
+          id_token: string | null
+          ip_address: string | null
+          job_title: string | null
+          last_active: string
+          last_name: string | null
+          login_timestamp: string
+          office_location: string | null
+          profile_image_url: string | null
+          raw_profile: Json | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          display_name?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          id_token?: string | null
+          ip_address?: string | null
+          job_title?: string | null
+          last_active?: string
+          last_name?: string | null
+          login_timestamp?: string
+          office_location?: string | null
+          profile_image_url?: string | null
+          raw_profile?: Json | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          display_name?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          id_token?: string | null
+          ip_address?: string | null
+          job_title?: string | null
+          last_active?: string
+          last_name?: string | null
+          login_timestamp?: string
+          office_location?: string | null
+          profile_image_url?: string | null
+          raw_profile?: Json | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_tokens: {
         Row: {
           access_token: string

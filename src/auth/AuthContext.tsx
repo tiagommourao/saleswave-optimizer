@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, UserManager, WebStorageStateStore, Log } from "oidc-client-ts";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +46,70 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  // Save user info to Supabase
+  const saveUserInfo = async (userData: User) => {
+    if (!userData || !userData.profile) {
+      console.error("User data or profile missing");
+      return;
+    }
+    
+    try {
+      console.log("Attempting to save user info to Supabase...");
+      
+      const userId = userData.profile.sub;
+      if (!userId) {
+        console.error("User ID is missing from profile", userData.profile);
+        return;
+      }
+
+      // Get user agent and construct user info object
+      const userAgent = window.navigator.userAgent;
+      const userInfo = {
+        user_id: userId,
+        email: userData.profile.email,
+        display_name: userData.profile.name,
+        first_name: userData.profile.given_name,
+        last_name: userData.profile.family_name,
+        profile_image_url: userData.profile.picture,
+        job_title: userData.profile.jobTitle,
+        department: userData.profile.department,
+        office_location: userData.profile.officeLocation,
+        user_agent: userAgent,
+        id_token: userData.id_token,
+        raw_profile: userData.profile
+      };
+
+      const { error: upsertError } = await supabase
+        .from('user_info')
+        .upsert([userInfo], {
+          onConflict: 'user_id',
+          ignoreDuplicates: false
+        });
+      
+      if (upsertError) {
+        console.error("Error saving user info:", upsertError);
+        toast({
+          variant: "destructive",
+          title: "Erro ao salvar informações",
+          description: "Não foi possível salvar as informações do usuário: " + upsertError.message
+        });
+      } else {
+        console.log("User info saved successfully");
+        toast({
+          title: "Informações salvas",
+          description: "Informações do usuário salvas com sucesso."
+        });
+      }
+    } catch (err) {
+      console.error("Error in saveUserInfo:", err);
+      toast({
+        variant: "destructive",
+        title: "Erro ao salvar informações",
+        description: "Ocorreu um erro ao salvar as informações do usuário."
+      });
+    }
+  };
 
   // Save user token to Supabase - fixed version with UUID handling
   const saveUserToken = async (userData: User) => {
@@ -169,8 +232,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       manager.events.addUserLoaded((loadedUser) => {
         console.log("Usuário carregado:", loadedUser);
         setUser(loadedUser);
-        // Save user token when loaded
+        // Save both user token and detailed info when loaded
         saveUserToken(loadedUser);
+        saveUserInfo(loadedUser);
         setIsLoading(false);
       });
 
@@ -192,6 +256,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         // Save user token for existing user
         if (loadedUser) {
           saveUserToken(loadedUser);
+          saveUserInfo(loadedUser);
         }
         setIsLoading(false);
       }).catch((err) => {
