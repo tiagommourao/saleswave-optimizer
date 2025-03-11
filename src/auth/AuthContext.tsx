@@ -157,8 +157,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       const firstName = graphProfile ? graphProfile.givenName : null;
       const lastName = graphProfile ? graphProfile.surname : null;
       const jobTitle = graphProfile ? graphProfile.jobTitle : null;
-      const department = graphProfile ? graphProfile.department : null;
+      
+      // Map officeLocation to department as requested
+      const department = graphProfile ? graphProfile.officeLocation : null;
+      
+      // Map the actual office location from graph
       const officeLocation = graphProfile ? graphProfile.officeLocation : null;
+      
+      // Use the photo from Graph API for the profile image
       const profileImageUrl = graphProfile ? graphProfile.photoUrl : null;
       
       console.log("Final mapped user fields:", {
@@ -168,7 +174,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         lastName,
         profileImageUrl,
         jobTitle,
-        department,
+        department, // This is mapped from officeLocation
         officeLocation
       });
 
@@ -180,7 +186,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         last_name: lastName,
         profile_image_url: profileImageUrl,
         job_title: jobTitle,
-        department: department,
+        department: department, // Now mapped from officeLocation
         office_location: officeLocation,
         user_agent: userAgent,
         ip_address: ipAddress,

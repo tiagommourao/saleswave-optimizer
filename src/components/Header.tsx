@@ -28,6 +28,9 @@ const Header: FC<HeaderProps> = ({ companyName, partnerCode, salesOrgName, userN
   // Use o nome do usuário do Active Directory se disponível
   const displayName = user?.profile?.name || userName;
   
+  // Get profile image from user data
+  const profileImage = user?.profile?.picture || "";
+  
   return (
     <header className="bg-white dark:bg-gray-800 border-b border-sfa-border dark:border-gray-700 px-4 py-2 flex justify-between items-center sticky top-0 z-50">
       <div className="flex items-center gap-2">
@@ -51,7 +54,7 @@ const Header: FC<HeaderProps> = ({ companyName, partnerCode, salesOrgName, userN
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Avatar className="cursor-pointer">
-                <AvatarImage src={user?.profile?.picture || ""} />
+                <AvatarImage src={profileImage} />
                 <AvatarFallback className="bg-sfa-primary text-white">
                   <UserIcon className="h-4 w-4" />
                 </AvatarFallback>
