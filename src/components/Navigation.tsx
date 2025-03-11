@@ -10,6 +10,7 @@ import {
   LucideIcon
 } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
+import { ExtendedUser } from '@/auth/types';
 
 interface NavItem {
   title: string;
@@ -48,15 +49,14 @@ const navItems: NavItem[] = [
     title: 'Observabilidade',
     href: '/observabilidade',
     icon: ActivityIcon,
-    adminOnly: true // Only visible to administrators
+    adminOnly: true
   }
 ];
 
 const Navigation: FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin'; // Check if the user is an admin
+  const isAdmin = (user as ExtendedUser)?.role === 'admin';
 
-  // Filter items based on admin status
   const visibleNavItems = navItems.filter(item => 
     !item.adminOnly || (item.adminOnly && isAdmin)
   );
