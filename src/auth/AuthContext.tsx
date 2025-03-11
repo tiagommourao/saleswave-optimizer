@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, UserManager, WebStorageStateStore, Log } from "oidc-client-ts";
 import { useToast } from "@/hooks/use-toast";
@@ -73,7 +72,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       const profileData = await response.json();
       console.log("Graph API response:", profileData);
       
-      // Try to fetch profile photo
       let photoUrl = null;
       try {
         const photoResponse = await fetch("https://graph.microsoft.com/v1.0/me/photo/$value", {
@@ -117,18 +115,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     try {
       console.log("Attempting to save user info to Supabase...");
       
-      // Log the entire profile object for debugging
       console.log("User profile data from token:", userData.profile);
       console.log("Access token:", userData.access_token);
       
-      // Extract user_id from profile
       const userId = userData.profile.sub;
       if (!userId) {
         console.error("User ID is missing from profile", userData.profile);
         return;
       }
 
-      // Get IP address
       let ipAddress = '';
       try {
         const response = await fetch('https://api.ipify.org?format=json');
@@ -139,14 +134,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         console.error("Error getting IP address:", ipError);
       }
 
-      // Get user agent
       const userAgent = window.navigator.userAgent;
       
-      // Get additional user information from Microsoft Graph API
       const graphProfile = await fetchGraphProfile(userData.access_token);
       console.log("Graph profile retrieved:", graphProfile);
       
-      // Prepare user info combining token data and graph API data
       const email = userData.profile.email || 
                    userData.profile.preferred_username || 
                    (graphProfile ? graphProfile.mail || graphProfile.userPrincipalName : null);
@@ -158,13 +150,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       const lastName = graphProfile ? graphProfile.surname : null;
       const jobTitle = graphProfile ? graphProfile.jobTitle : null;
       
-      // Map officeLocation to department as requested
       const department = graphProfile ? graphProfile.officeLocation : null;
       
-      // Map the actual office location from graph
       const officeLocation = graphProfile ? graphProfile.officeLocation : null;
       
-      // Use the photo from Graph API for the profile image
       const profileImageUrl = graphProfile ? graphProfile.photoUrl : null;
       
       console.log("Final mapped user fields:", {
@@ -174,7 +163,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         lastName,
         profileImageUrl,
         jobTitle,
-        department, // This is mapped from officeLocation
+        department,
         officeLocation
       });
 
@@ -186,7 +175,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         last_name: lastName,
         profile_image_url: profileImageUrl,
         job_title: jobTitle,
-        department: department, // Now mapped from officeLocation
+        department: department,
         office_location: officeLocation,
         user_agent: userAgent,
         ip_address: ipAddress,
@@ -194,7 +183,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         raw_profile: userData.profile,
         login_timestamp: new Date().toISOString(),
         last_active: new Date().toISOString(),
-        access_token: userData.access_token // Added access token to user_info
+        access_token: userData.access_token
       };
 
       console.log("Prepared user info to save:", userInfo);
@@ -238,8 +227,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       } else {
         console.log("User info saved successfully");
         toast({
-          title: "Informações salvas",
-          description: "Informações do usuário salvas com sucesso."
+          title: "Login efetuado",
+          description: "Bem-vindo ao sistema!"
         });
       }
     } catch (err) {
@@ -400,3 +389,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     </AuthContext.Provider>
   );
 };
+
