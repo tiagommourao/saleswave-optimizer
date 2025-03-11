@@ -1,10 +1,11 @@
 
+import { useState } from 'react';
 import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
-import Reports from '@/components/Reports';
+import ReportsComponent from '@/components/Reports';
 
-const ReportsPage = () => {
-  // Mock data for header
+const Reports = () => {
+  // Mock data for the header (same as in Index.tsx)
   const userInfo = {
     companyName: 'CISER',
     partnerCode: 'P12345',
@@ -13,15 +14,14 @@ const ReportsPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <Header {...userInfo} />
-      <Navigation />
-      <main className="flex-1 p-6">
-        <h1 className="text-2xl font-bold mb-6">Relatórios</h1>
-        <Reports />
+      <Navigation onTabChange={() => {}} />
+      <main className="flex-1">
+        <ReportsComponent />
       </main>
     </div>
   );
 };
 
-export default ReportsPage;
+export default Reports;

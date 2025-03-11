@@ -9,14 +9,11 @@ import {
   ActivityIcon,
   LucideIcon
 } from 'lucide-react';
-import { useAuth } from '@/auth/AuthContext';
-import { ExtendedUser } from '@/auth/types';
 
 interface NavItem {
   title: string;
   href: string;
   icon: LucideIcon;
-  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -48,22 +45,14 @@ const navItems: NavItem[] = [
   {
     title: 'Observabilidade',
     href: '/observabilidade',
-    icon: ActivityIcon,
-    adminOnly: true
+    icon: ActivityIcon
   }
 ];
 
 const Navigation: FC = () => {
-  const { user } = useAuth();
-  const isAdmin = (user as ExtendedUser)?.role === 'admin';
-
-  const visibleNavItems = navItems.filter(item => 
-    !item.adminOnly || (item.adminOnly && isAdmin)
-  );
-
   return (
     <nav className="space-y-1 px-2 py-5">
-      {visibleNavItems.map((item) => (
+      {navItems.map((item) => (
         <NavLink
           to={item.href}
           key={item.href}
