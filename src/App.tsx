@@ -4,7 +4,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './auth/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import Login from './pages/Login';
-import AuthConfig from './pages/AuthConfig';
 import AuthCallback from './pages/AuthCallback';
 import Index from './pages/Index';
 import MyClients from './pages/MyClients';
@@ -12,6 +11,9 @@ import NewOrder from './pages/NewOrder';
 import ProductCatalog from './pages/ProductCatalog';
 import ReportsPage from './pages/Reports';
 import NotFound from './pages/NotFound';
+import AdminLayout from './components/admin/AdminLayout';
+import AuthConfig from './pages/admin/AuthConfig';
+import Observabilidade from './pages/admin/Observabilidade';
 import { ThemeProvider } from './components/ThemeProvider';
 import { Toaster } from './components/ui/toaster';
 import { getAzureConfig } from './lib/supabase';
@@ -96,21 +98,34 @@ function App() {
       <AuthProvider clientId={clientId} tenant={tenant}>
         <Router>
           <Routes>
+            {/* Public Routes */}
             <Route path="/login" element={<Login />} />
-            <Route path="/auth-config" element={<AuthConfig />} />
             <Route path="/auth-callback" element={<AuthCallback />} />
-            <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
             
+            {/* Admin Routes */}
+            <Route path="/cisadm" element={<AdminLayout />}>
+              <Route index element={<Navigate to="/cisadm/auth-config" replace />} />
+              <Route path="auth-config" element={<AuthConfig />} />
+              <Route path="observabilidade" element={<Observabilidade />} />
+            </Route>
+            
+            {/* Redirect old auth-config to new location */}
+            <Route path="/auth-config" element={<Navigate to="/cisadm/auth-config" replace />} />
+            
+            {/* Protected App Routes */}
+            <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
             <Route path="/relatorios" element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
             <Route path="/novo-pedido" element={<PrivateRoute><NewOrder /></PrivateRoute>} />
             <Route path="/meus-clientes" element={<PrivateRoute><MyClients /></PrivateRoute>} />
             <Route path="/catalogo-produtos" element={<PrivateRoute><ProductCatalog /></PrivateRoute>} />
             
+            {/* Legacy Routes for EN/PT compatibility */}
             <Route path="/reports" element={<Navigate to="/relatorios" replace />} />
             <Route path="/new-order" element={<Navigate to="/novo-pedido" replace />} />
             <Route path="/my-clients" element={<Navigate to="/meus-clientes" replace />} />
             <Route path="/product-catalog" element={<Navigate to="/catalogo-produtos" replace />} />
             
+            {/* Fallback Routes */}
             <Route path="/404" element={<NotFound />} />
             <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>

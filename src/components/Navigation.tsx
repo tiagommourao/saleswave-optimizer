@@ -4,11 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, FileBarChart, ShoppingCart, Users, Package } from 'lucide-react';
 
-interface NavigationProps {
-  onTabChange: (value: string) => void;
-}
-
-const Navigation: FC<NavigationProps> = ({ onTabChange }) => {
+const Navigation: FC = () => {
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -25,7 +21,6 @@ const Navigation: FC<NavigationProps> = ({ onTabChange }) => {
               <TabsTrigger 
                 value="dashboard" 
                 className={`h-14 px-4 data-[state=active]:border-b-2 data-[state=active]:border-sfa-primary data-[state=active]:text-sfa-primary rounded-none dark:text-gray-300 dark:data-[state=active]:text-white ${isActive('/') ? 'border-b-2 border-sfa-primary text-sfa-primary dark:text-white' : ''}`}
-                onClick={() => onTabChange('dashboard')}
               >
                 <LayoutDashboard className="h-4 w-4 mr-2" />
                 Dashboard
@@ -35,7 +30,6 @@ const Navigation: FC<NavigationProps> = ({ onTabChange }) => {
               <TabsTrigger 
                 value="reports" 
                 className={`h-14 px-4 data-[state=active]:border-b-2 data-[state=active]:border-sfa-primary data-[state=active]:text-sfa-primary rounded-none dark:text-gray-300 dark:data-[state=active]:text-white ${isActive('/relatorios') ? 'border-b-2 border-sfa-primary text-sfa-primary dark:text-white' : ''}`}
-                onClick={() => onTabChange('reports')}
               >
                 <FileBarChart className="h-4 w-4 mr-2" />
                 Relatórios
@@ -45,7 +39,6 @@ const Navigation: FC<NavigationProps> = ({ onTabChange }) => {
               <TabsTrigger 
                 value="new-order" 
                 className={`h-14 px-4 data-[state=active]:border-b-2 data-[state=active]:border-sfa-primary data-[state=active]:text-sfa-primary rounded-none dark:text-gray-300 dark:data-[state=active]:text-white ${isActive('/novo-pedido') ? 'border-b-2 border-sfa-primary text-sfa-primary dark:text-white' : ''}`}
-                onClick={() => onTabChange('new-order')}
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
                 Novo Pedido
@@ -55,7 +48,6 @@ const Navigation: FC<NavigationProps> = ({ onTabChange }) => {
               <TabsTrigger 
                 value="my-clients" 
                 className={`h-14 px-4 data-[state=active]:border-b-2 data-[state=active]:border-sfa-primary data-[state=active]:text-sfa-primary rounded-none dark:text-gray-300 dark:data-[state=active]:text-white ${isActive('/meus-clientes') ? 'border-b-2 border-sfa-primary text-sfa-primary dark:text-white' : ''}`}
-                onClick={() => onTabChange('my-clients')}
               >
                 <Users className="h-4 w-4 mr-2" />
                 Meus Clientes
@@ -65,7 +57,6 @@ const Navigation: FC<NavigationProps> = ({ onTabChange }) => {
               <TabsTrigger 
                 value="product-catalog" 
                 className={`h-14 px-4 data-[state=active]:border-b-2 data-[state=active]:border-sfa-primary data-[state=active]:text-sfa-primary rounded-none dark:text-gray-300 dark:data-[state=active]:text-white ${isActive('/catalogo-produtos') ? 'border-b-2 border-sfa-primary text-sfa-primary dark:text-white' : ''}`}
-                onClick={() => onTabChange('product-catalog')}
               >
                 <Package className="h-4 w-4 mr-2" />
                 Catálogo de Produtos

@@ -1,9 +1,9 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
-import { Loader2, Settings, AlertCircle, Database, CloudOff } from 'lucide-react';
+import { Settings, LogIn } from 'lucide-react';
 import { ConfigCheckResult } from '@/types/auth';
 
 interface LoginCardProps {
@@ -12,88 +12,82 @@ interface LoginCardProps {
   configCheck: ConfigCheckResult;
 }
 
-const LoginCard = ({ 
-  handleLogin, 
-  loginInProgress, 
-  configCheck 
-}: LoginCardProps) => {
-  const [showConfigSource, setShowConfigSource] = useState(false);
-  const hasMinimumConfig = configCheck.clientId && configCheck.tenant;
-
+const LoginCard = ({ handleLogin, loginInProgress, configCheck }: LoginCardProps) => {
+  const navigate = useNavigate();
+  const isConfigured = configCheck.clientId && configCheck.tenant;
+  
   return (
     <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <div className="mx-auto">
-          <img 
-            src="https://www.ciser.com.br/application/modules/comum/assets/img/logo-ciser.svg" 
-            alt="CISER Logo" 
-            className="h-10 mb-2" 
-          />
+      <CardHeader className="space-y-1">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-2xl">SFA Login</CardTitle>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8" 
+            onClick={() => navigate('/cisadm')}
+            title="Área Administrativa"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
         </div>
         <CardDescription>
-          {hasMinimumConfig 
-            ? "Entre com sua conta Microsoft para acessar o sistema" 
-            : "Configure o Azure AD para acessar o sistema"}
+          {isConfigured 
+            ? "Faça login com sua conta Microsoft"
+            : "Configure o Azure AD para continuar"}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="text-center">
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-6 flex items-center justify-center">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-              SFA CISER
-            </h1>
-          </div>
-        </div>
-        
-        {!hasMinimumConfig && (
-          <div className="rounded-md bg-amber-50 dark:bg-amber-900/30 p-3 text-sm text-amber-800 dark:text-amber-200">
-            <div className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <p>Você precisa configurar o Client ID e Tenant antes de fazer login.</p>
+      <CardContent className="grid gap-4">
+        {!isConfigured && (
+          <div className="rounded-md border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-950 p-4">
+            <div className="flex">
+              <div className="ml-3">
+                <p className="text-sm text-orange-700 dark:text-orange-200">
+                  Configuração incompleta. Configure o Azure AD antes de continuar.
+                </p>
+              </div>
             </div>
           </div>
         )}
         
-        {hasMinimumConfig && !configCheck.clientSecret && (
-          <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/30 p-3 text-sm text-yellow-800 dark:text-yellow-200">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              <p>O Client Secret não está configurado. Isso pode ser necessário para alguns tipos de aplicativos Azure AD.</p>
-            </div>
-          </div>
-        )}
-        
-        {showConfigSource && hasMinimumConfig && (
-          <div className="rounded-md bg-blue-50 dark:bg-blue-900/30 p-3 text-sm text-blue-800 dark:text-blue-200">
-            <div className="flex items-center gap-2">
-              {configCheck.source === "database" ? (
-                <Database className="h-4 w-4" />
-              ) : (
-                <CloudOff className="h-4 w-4" />
-              )}
-              <p>
-                {configCheck.source === "database" 
-                  ? "Usando configurações sincronizadas do banco de dados." 
-                  : "Usando configurações locais (não sincronizadas)."}
-              </p>
+        {isConfigured && (
+          <div className="rounded-md border-l-4 border-green-500 bg-green-50 dark:bg-green-950 p-4">
+            <div className="flex">
+              <div className="ml-3">
+                <p className="text-sm text-green-700 dark:text-green-200">
+                  Configuração pronta. Você pode fazer login agora.
+                </p>
+                {configCheck.source && (
+                  <p className="text-xs text-green-600 dark:text-green-300 mt-1">
+                    Usando configurações do {configCheck.source === "database" ? "banco de dados" : "armazenamento local"}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex flex-col space-y-2">
         <Button 
           className="w-full" 
           onClick={handleLogin} 
-          disabled={loginInProgress || !hasMinimumConfig}
+          disabled={loginInProgress || !isConfigured}
         >
-          {loginInProgress ? (
+          {loginInProgress ? "Processando..." : (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-              Autenticando...
+              <LogIn className="mr-2 h-4 w-4" />
+              Entrar com Microsoft
             </>
-          ) : (
-            "Entrar com Microsoft"
           )}
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          onClick={() => navigate('/cisadm/auth-config')}
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          Configurar Azure AD
         </Button>
       </CardFooter>
     </Card>
