@@ -9,7 +9,7 @@ interface PrivateRouteProps {
 }
 
 const PrivateRoute: FC<PrivateRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, error } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -18,15 +18,32 @@ const PrivateRoute: FC<PrivateRouteProps> = ({ children }) => {
     const clientId = localStorage.getItem('azure_ad_client_id');
     const tenant = localStorage.getItem('azure_ad_tenant');
     
-    if (!isAuthenticated && !isLoading && (!clientId || !tenant)) {
+    if (!isAuthenticated && !isLoading) {
+      if (!clientId || !tenant) {
+        toast({
+          variant: "destructive",
+          title: "Configuração necessária",
+          description: "Configure o Azure AD antes de acessar o sistema."
+        });
+        navigate('/cisadm/auth-config');
+        return;
+      }
+      
+      // Se temos configuração mas não estamos autenticados, redirecionar para login
+      navigate('/login');
+    }
+    
+    // Se houver um erro de autenticação
+    if (error) {
+      console.error("Erro de autenticação no PrivateRoute:", error);
       toast({
         variant: "destructive",
-        title: "Configuração necessária",
-        description: "Configure o Azure AD antes de acessar o sistema."
+        title: "Erro de autenticação",
+        description: "Ocorreu um erro ao verificar sua autenticação. Tente fazer login novamente."
       });
-      navigate('/auth-config');
+      navigate('/login');
     }
-  }, [isAuthenticated, isLoading, navigate, toast]);
+  }, [isAuthenticated, isLoading, error, navigate, toast]);
   
   if (isLoading) {
     return (

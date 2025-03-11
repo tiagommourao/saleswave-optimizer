@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       console.log("Iniciando configuração do UserManager com:", { clientId, tenant });
       
       Log.setLogger(console);
-      Log.setLevel(Log.DEBUG);
+      Log.setLevel(Log.INFO);  // Changed from DEBUG to INFO to reduce console noise
 
       const authority = `https://login.microsoftonline.com/${tenant}/v2.0`;
 
@@ -49,9 +49,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         userStore: new WebStorageStateStore({ store: window.localStorage }),
       };
 
-      console.log("Configurações finais:", {
-        ...settings,
-      });
+      console.log("Configurações finais:", settings);
 
       const manager = new UserManager(settings);
       console.log("UserManager configurado:", manager);
@@ -80,18 +78,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         setError(error);
       });
 
-      manager.getUser().then((loadedUser) => {
-        console.log("Usuario atual verificado:", loadedUser);
-        setUser(loadedUser);
-        if (loadedUser) {
-          saveUserInfo(loadedUser);
-        }
-        setIsLoading(false);
-      }).catch((err) => {
-        console.error("Erro ao obter usuário:", err);
-        setError(err);
-        setIsLoading(false);
-      });
+      manager.getUser()
+        .then((loadedUser) => {
+          console.log("Usuario atual verificado:", loadedUser);
+          setUser(loadedUser);
+          if (loadedUser) {
+            saveUserInfo(loadedUser);
+          }
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          console.error("Erro ao obter usuário:", err);
+          setError(err);
+          setIsLoading(false);
+        });
 
       return () => {
         manager.events.removeUserLoaded(() => {});

@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { getAzureConfig } from '@/lib/supabase';
-import { useToast } from '@/hooks/use-toast';
 import { ConfigCheckResult } from '@/types/auth';
 
 export const useAzureConfig = () => {
@@ -13,7 +12,6 @@ export const useAzureConfig = () => {
   });
   const [checkingConfig, setCheckingConfig] = useState<boolean>(true);
   const checkAttempted = useRef<boolean>(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     const checkConfigurations = async () => {
@@ -24,11 +22,18 @@ export const useAzureConfig = () => {
       setCheckingConfig(true);
       
       try {
-        // Verificar se existe configuração no Supabase
+        // Try to get configuration from Supabase
         const supabaseConfig = await getAzureConfig();
         
         if (supabaseConfig) {
-          // Configuração encontrada no Supabase
+          // Store configuration in localStorage for backup
+          localStorage.setItem('azure_ad_client_id', supabaseConfig.clientid);
+          localStorage.setItem('azure_ad_tenant', supabaseConfig.tenant);
+          if (supabaseConfig.secret) {
+            localStorage.setItem('azure_ad_client_secret', supabaseConfig.secret);
+          }
+          
+          // Configuration found in Supabase
           setConfigCheck({
             clientId: !!supabaseConfig.clientid,
             tenant: !!supabaseConfig.tenant,
@@ -37,7 +42,7 @@ export const useAzureConfig = () => {
           });
           console.log("Usando configurações do banco de dados");
         } else {
-          // Caso não encontre no Supabase, verificar localStorage
+          // If not found in Supabase, check localStorage
           const clientId = localStorage.getItem('azure_ad_client_id');
           const tenant = localStorage.getItem('azure_ad_tenant');
           const clientSecret = localStorage.getItem('azure_ad_client_secret');
@@ -52,7 +57,7 @@ export const useAzureConfig = () => {
         }
       } catch (error) {
         console.error("Erro ao verificar configurações:", error);
-        // Em caso de erro, tenta usar o localStorage
+        // In case of error, try to use localStorage
         const clientId = localStorage.getItem('azure_ad_client_id');
         const tenant = localStorage.getItem('azure_ad_tenant');
         const clientSecret = localStorage.getItem('azure_ad_client_secret');
@@ -63,6 +68,7 @@ export const useAzureConfig = () => {
           clientSecret: !!clientSecret,
           source: "local"
         });
+        console.log("Erro ao acessar configurações do banco, usando configurações locais");
       } finally {
         setCheckingConfig(false);
       }

@@ -17,20 +17,19 @@ import Observabilidade from './pages/admin/Observabilidade';
 import { ThemeProvider } from './components/ThemeProvider';
 import { Toaster } from './components/ui/toaster';
 import { getAzureConfig } from './lib/supabase';
-import { useToast } from './hooks/use-toast';
 
 function App() {
   const [clientId, setClientId] = useState<string>('');
   const [tenant, setTenant] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadAttempted, setLoadAttempted] = useState<boolean>(false);
-  const { toast } = useToast();
-
+  
   const loadConfigurations = useCallback(async () => {
     if (isLoading && loadAttempted) return;
     
     setIsLoading(true);
     try {
+      // Try to load from Supabase first
       const supabaseConfig = await getAzureConfig();
       
       if (supabaseConfig) {
@@ -41,6 +40,7 @@ function App() {
         localStorage.setItem('azure_ad_client_id', supabaseConfig.clientid);
         localStorage.setItem('azure_ad_tenant', supabaseConfig.tenant);
       } else {
+        // If not found in Supabase, try localStorage
         const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
         const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
         
@@ -49,12 +49,8 @@ function App() {
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao carregar configurações",
-        description: "Não foi possível carregar as configurações do Azure AD."
-      });
       
+      // In case of error, try localStorage
       const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
       const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
       
@@ -64,7 +60,7 @@ function App() {
       setIsLoading(false);
       setLoadAttempted(true);
     }
-  }, [isLoading, loadAttempted, toast]);
+  }, [isLoading, loadAttempted]);
 
   useEffect(() => {
     if (!loadAttempted) {

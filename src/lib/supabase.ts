@@ -1,19 +1,19 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Definir valores padrão (URL e chave anônima do projeto SFA)
+// Define default values (SFA project URL and anonymous key)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ycjmaxrexzzclhvgynwr.supabase.co';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inljam1heHJleHp6Y2xodmd5bndyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2MTE1NDQsImV4cCI6MjA1NzE4NzU0NH0.1WpYuBnjP1AouBS61OLrnJKRC8dbaVoT0Bs4GAWR2hg';
 
-// Verificar se as variáveis estão definidas (apenas log, agora temos valores padrão)
+// Check if environment variables are defined (just log, we have default values now)
 if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
   console.warn('Variáveis de ambiente do Supabase não configuradas. Usando valores padrão.');
 }
 
-// Criar e exportar o cliente Supabase
+// Create and export the Supabase client
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Definir os tipos para nossas configurações
+// Define types for our configurations
 export interface AzureConfig {
   id?: string;
   clientid: string;
@@ -22,7 +22,7 @@ export interface AzureConfig {
   created_at?: string;
 }
 
-// Função para buscar a configuração
+// Function to fetch configuration
 export async function getAzureConfig(): Promise<AzureConfig | null> {
   try {
     const { data, error } = await supabase
@@ -40,7 +40,7 @@ export async function getAzureConfig(): Promise<AzureConfig | null> {
   }
 }
 
-// Função para salvar a configuração
+// Function to save configuration
 export async function saveAzureConfig(config: AzureConfig): Promise<boolean> {
   try {
     const { error } = await supabase
