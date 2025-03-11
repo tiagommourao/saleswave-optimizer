@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { BellIcon, LogOutIcon, SettingsIcon, UserIcon } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
-import { useAuth } from '@/auth/AuthContext';
+import { useAuth } from '@/auth/useAuth';
 import {
   DropdownMenu,
   DropdownMenuContent,
