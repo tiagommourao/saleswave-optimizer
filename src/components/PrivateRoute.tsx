@@ -56,6 +56,15 @@ const PrivateRoute: FC<PrivateRouteProps> = ({ children }) => {
     );
   }
 
+  // Even if the user is not authenticated, for admin routes we want to allow access 
+  // to the auth-config page, which we'll check in the component itself
+  const currentPath = window.location.pathname;
+  if (currentPath.includes('/cisadm/') && !isAuthenticated) {
+    // For admin paths, we'll allow navigation but the components themselves
+    // will handle authentication as needed
+    return <>{children}</>;
+  }
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

@@ -32,28 +32,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
 
       console.log("Iniciando configuração do UserManager com:", { clientId, tenant });
       
-      Log.setLogger(console);
-      Log.setLevel(Log.INFO);  // Changed from DEBUG to INFO to reduce console noise
+      try {
+        Log.setLogger(console);
+        Log.setLevel(Log.INFO);  // Changed from DEBUG to INFO to reduce console noise
 
-      const authority = `https://login.microsoftonline.com/${tenant}/v2.0`;
+        const authority = `https://login.microsoftonline.com/${tenant}/v2.0`;
 
-      const settings: any = {
-        authority,
-        client_id: clientId,
-        redirect_uri: `${window.location.origin}/auth-callback`,
-        post_logout_redirect_uri: window.location.origin,
-        response_type: "code",
-        scope: "openid profile email User.Read User.ReadBasic.All",
-        automaticSilentRenew: true,
-        monitorSession: true,
-        userStore: new WebStorageStateStore({ store: window.localStorage }),
-      };
+        const settings: any = {
+          authority,
+          client_id: clientId,
+          redirect_uri: `${window.location.origin}/auth-callback`,
+          post_logout_redirect_uri: window.location.origin,
+          response_type: "code",
+          scope: "openid profile email User.Read User.ReadBasic.All",
+          automaticSilentRenew: true,
+          monitorSession: true,
+          userStore: new WebStorageStateStore({ store: window.localStorage }),
+        };
 
-      console.log("Configurações finais:", settings);
+        console.log("Configurações finais:", settings);
 
-      const manager = new UserManager(settings);
-      console.log("UserManager configurado:", manager);
-      return manager;
+        const manager = new UserManager(settings);
+        console.log("UserManager configurado:", manager);
+        return manager;
+      } catch (err) {
+        console.error("Erro ao configurar UserManager:", err);
+        setError(err instanceof Error ? err : new Error(String(err)));
+        setIsLoading(false);
+        return null;
+      }
     };
 
     const manager = initializeUserManager();
@@ -63,7 +70,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       manager.events.addUserLoaded((loadedUser) => {
         console.log("Usuário carregado:", loadedUser);
         setUser(loadedUser);
-        saveUserInfo(loadedUser);
+        saveUserInfo(loadedUser).catch(err => {
+          console.error("Erro ao salvar informações do usuário, mas continuando com o login:", err);
+        });
         setIsLoading(false);
       });
 
@@ -75,7 +84,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
 
       manager.events.addSilentRenewError((error) => {
         console.error("Erro na renovação silenciosa:", error);
-        setError(error);
+        // Don't set error state here as this might interfere with regular usage
+        // Instead just log it and let the app continue
       });
 
       manager.getUser()
@@ -83,7 +93,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
           console.log("Usuario atual verificado:", loadedUser);
           setUser(loadedUser);
           if (loadedUser) {
-            saveUserInfo(loadedUser);
+            saveUserInfo(loadedUser).catch(err => {
+              console.error("Erro ao salvar informações do usuário, mas continuando com o login:", err);
+            });
           }
           setIsLoading(false);
         })

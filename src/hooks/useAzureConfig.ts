@@ -74,7 +74,28 @@ export const useAzureConfig = () => {
       }
     };
     
+    // Add a timeout to ensure we always exit loading state
+    const timer = setTimeout(() => {
+      if (checkingConfig) {
+        setCheckingConfig(false);
+        // If still checking, use localStorage as fallback
+        const clientId = localStorage.getItem('azure_ad_client_id');
+        const tenant = localStorage.getItem('azure_ad_tenant');
+        const clientSecret = localStorage.getItem('azure_ad_client_secret');
+        
+        setConfigCheck({
+          clientId: !!clientId,
+          tenant: !!tenant,
+          clientSecret: !!clientSecret,
+          source: "local"
+        });
+        console.log("Timeout ao verificar configurações, usando localStorage");
+      }
+    }, 5000);
+    
     checkConfigurations();
+    
+    return () => clearTimeout(timer);
   }, []);
 
   return { configCheck, checkingConfig };

@@ -17,12 +17,15 @@ import Observabilidade from './pages/admin/Observabilidade';
 import { ThemeProvider } from './components/ThemeProvider';
 import { Toaster } from './components/ui/toaster';
 import { getAzureConfig } from './lib/supabase';
+import { useToast } from './hooks/use-toast';
 
 function App() {
   const [clientId, setClientId] = useState<string>('');
   const [tenant, setTenant] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadAttempted, setLoadAttempted] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  const { toast } = useToast();
   
   const loadConfigurations = useCallback(async () => {
     if (isLoading && loadAttempted) return;
@@ -39,6 +42,9 @@ function App() {
         
         localStorage.setItem('azure_ad_client_id', supabaseConfig.clientid);
         localStorage.setItem('azure_ad_tenant', supabaseConfig.tenant);
+        if (supabaseConfig.secret) {
+          localStorage.setItem('azure_ad_client_secret', supabaseConfig.secret);
+        }
       } else {
         // If not found in Supabase, try localStorage
         const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
@@ -46,9 +52,15 @@ function App() {
         
         setClientId(savedClientId);
         setTenant(savedTenant);
+        
+        if (!savedClientId || !savedTenant) {
+          console.warn('Nenhuma configuração encontrada no Supabase ou localStorage');
+        }
       }
+      setLoadError(null);
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
+      setLoadError(error instanceof Error ? error : new Error(String(error)));
       
       // In case of error, try localStorage
       const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
@@ -56,13 +68,21 @@ function App() {
       
       setClientId(savedClientId);
       setTenant(savedTenant);
+      
+      if (savedClientId && savedTenant) {
+        toast({
+          title: "Usando configurações locais",
+          description: "Houve um erro ao acessar o banco de dados, usando configurações salvas localmente."
+        });
+      }
     } finally {
       setIsLoading(false);
       setLoadAttempted(true);
     }
-  }, [isLoading, loadAttempted]);
+  }, [isLoading, loadAttempted, toast]);
 
   useEffect(() => {
+    // Ensure we load configurations
     if (!loadAttempted) {
       loadConfigurations();
     }
@@ -73,10 +93,30 @@ function App() {
     };
     
     window.addEventListener('storage', handleStorageChange);
+    
+    // Add a timeout to ensure we always exit loading state
+    const timer = setTimeout(() => {
+      if (isLoading) {
+        setIsLoading(false);
+        const savedClientId = localStorage.getItem('azure_ad_client_id') || '';
+        const savedTenant = localStorage.getItem('azure_ad_tenant') || '';
+        
+        setClientId(savedClientId);
+        setTenant(savedTenant);
+        
+        toast({
+          variant: "destructive",
+          title: "Tempo esgotado",
+          description: "Carregamento das configurações demorou muito tempo. Usando dados locais."
+        });
+      }
+    }, 5000);
+    
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      clearTimeout(timer);
     };
-  }, [loadConfigurations, loadAttempted]);
+  }, [loadConfigurations, loadAttempted, isLoading, toast]);
 
   if (isLoading) {
     return (

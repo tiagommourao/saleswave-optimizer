@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, CheckCircle, XCircle, BarChart2, Clock, Activity, RefreshCw, Database, Users } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, XCircle, BarChart2, Clock, Activity, RefreshCw, Database, Users, Info } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/lib/supabase';
@@ -65,24 +66,39 @@ const Observabilidade = () => {
     totalUsers: 0,
     activeUsers: 0,
     latestLogins: [],
-    loading: true
+    loading: true,
+    error: null
   });
   const { toast } = useToast();
   
   useEffect(() => {
+    // Set data and loading to false even if there's an error
+    setData(generateMockData());
     loadSupabaseStats();
+    
+    // Always set loading to false after a timeout (fail-safe)
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+    
+    return () => clearTimeout(timer);
   }, []);
   
   const loadSupabaseStats = async () => {
     try {
+      // Attempt to get Supabase stats
       const { data: users, error: usersError } = await supabase
         .from('user_info')
         .select('count', { count: 'exact' });
+
+      if (usersError) throw new Error('Error fetching user count: ' + usersError.message);
 
       const { data: activeUsers, error: activeError } = await supabase
         .from('user_info')
         .select('count', { count: 'exact' })
         .gte('last_active', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+      if (activeError) throw new Error('Error fetching active users: ' + activeError.message);
 
       const { data: latestLogins, error: loginsError } = await supabase
         .from('user_info')
@@ -90,23 +106,38 @@ const Observabilidade = () => {
         .order('login_timestamp', { ascending: false })
         .limit(5);
 
-      if (usersError || activeError || loginsError) {
-        throw new Error('Error fetching Supabase stats');
-      }
+      if (loginsError) throw new Error('Error fetching latest logins: ' + loginsError.message);
 
       setSupabaseStats({
         totalUsers: users?.[0]?.count || 0,
         activeUsers: activeUsers?.[0]?.count || 0,
         latestLogins: latestLogins || [],
-        loading: false
+        loading: false,
+        error: null
       });
+      
+      // Always set loading to false after data is loaded
+      setIsLoading(false);
     } catch (error) {
       console.error('Error loading Supabase stats:', error);
+      
+      // Update state with error but still allow viewing the page
+      setSupabaseStats({
+        totalUsers: 0,
+        activeUsers: 0,
+        latestLogins: [],
+        loading: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      
       toast({
         variant: "destructive",
         title: "Erro ao carregar estatísticas",
         description: "Não foi possível carregar as estatísticas do Supabase."
       });
+      
+      // Still set loading to false so the page displays
+      setIsLoading(false);
     }
   };
 
@@ -117,6 +148,7 @@ const Observabilidade = () => {
     setRefreshing(false);
   };
   
+  // Show loading indicator but with a timeout
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-96">
@@ -289,6 +321,16 @@ const Observabilidade = () => {
         </TabsContent>
         
         <TabsContent value="supabase" className="space-y-6">
+          {supabaseStats.error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erro ao carregar estatísticas</AlertTitle>
+              <AlertDescription>
+                {supabaseStats.error}
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2">
@@ -324,7 +366,7 @@ const Observabilidade = () => {
                   Usuários ativos nas últimas 24 horas
                 </div>
                 <Progress 
-                  value={(supabaseStats.activeUsers / supabaseStats.totalUsers) * 100} 
+                  value={(supabaseStats.activeUsers / (supabaseStats.totalUsers || 1)) * 100} 
                   className="h-2 mt-2"
                 />
               </CardContent>
@@ -339,7 +381,7 @@ const Observabilidade = () => {
                   {supabaseStats.loading ? (
                     <Loader2 className="h-6 w-6 animate-spin" />
                   ) : (
-                    `${Math.round((supabaseStats.activeUsers / supabaseStats.totalUsers) * 100)}%`
+                    `${Math.round((supabaseStats.activeUsers / (supabaseStats.totalUsers || 1)) * 100)}%`
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
@@ -362,7 +404,7 @@ const Observabilidade = () => {
                   </div>
                 ) : supabaseStats.latestLogins.length === 0 ? (
                   <Alert>
-                    <AlertCircle className="h-4 w-4" />
+                    <Info className="h-4 w-4" />
                     <AlertTitle>Nenhum login registrado</AlertTitle>
                     <AlertDescription>
                       Não há registros de login no período analisado.
@@ -393,10 +435,10 @@ const Observabilidade = () => {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              {format(new Date(login.login_timestamp), 'PPpp', { locale: ptBR })}
+                              {login.login_timestamp ? format(new Date(login.login_timestamp), 'PPpp', { locale: ptBR }) : 'N/A'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              {format(new Date(login.last_active), 'PPpp', { locale: ptBR })}
+                              {login.last_active ? format(new Date(login.last_active), 'PPpp', { locale: ptBR }) : 'N/A'}
                             </td>
                           </tr>
                         ))}
