@@ -1,13 +1,15 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, CheckCircle, XCircle, BarChart, Clock, Activity, RefreshCw } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, XCircle, BarChart2, Clock, Activity, RefreshCw, Database, Users } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from '@/lib/supabase';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-// Mock data for visualizations
 const generateMockData = () => {
   const now = new Date();
   const lastDay = Array.from({ length: 24 }, (_, i) => ({
@@ -59,22 +61,60 @@ const Observabilidade = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState(generateMockData());
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [supabaseStats, setSupabaseStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    latestLogins: [],
+    loading: true
+  });
+  const { toast } = useToast();
   
   useEffect(() => {
-    // Simulate loading data
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
-    
-    return () => clearTimeout(timer);
+    loadSupabaseStats();
   }, []);
   
-  const handleRefresh = () => {
+  const loadSupabaseStats = async () => {
+    try {
+      const { data: users, error: usersError } = await supabase
+        .from('user_info')
+        .select('count', { count: 'exact' });
+
+      const { data: activeUsers, error: activeError } = await supabase
+        .from('user_info')
+        .select('count', { count: 'exact' })
+        .gte('last_active', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+      const { data: latestLogins, error: loginsError } = await supabase
+        .from('user_info')
+        .select('*')
+        .order('login_timestamp', { ascending: false })
+        .limit(5);
+
+      if (usersError || activeError || loginsError) {
+        throw new Error('Error fetching Supabase stats');
+      }
+
+      setSupabaseStats({
+        totalUsers: users?.[0]?.count || 0,
+        activeUsers: activeUsers?.[0]?.count || 0,
+        latestLogins: latestLogins || [],
+        loading: false
+      });
+    } catch (error) {
+      console.error('Error loading Supabase stats:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar estatísticas",
+        description: "Não foi possível carregar as estatísticas do Supabase."
+      });
+    }
+  };
+
+  const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setData(generateMockData());
-      setRefreshing(false);
-    }, 1000);
+    await loadSupabaseStats();
+    setData(generateMockData());
+    setRefreshing(false);
   };
   
   if (isLoading) {
@@ -106,15 +146,15 @@ const Observabilidade = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 mb-6">
+        <TabsList className="grid grid-cols-5 mb-6">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="supabase">Supabase</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
           <TabsTrigger value="traces">Traces</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
         </TabsList>
         
         <TabsContent value="dashboard" className="space-y-6">
-          {/* Métricas-chave em cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-2">
@@ -183,7 +223,6 @@ const Observabilidade = () => {
             </Card>
           </div>
           
-          {/* Status de Saúde dos Sistemas */}
           <Card>
             <CardHeader>
               <CardTitle>Saúde do Sistema</CardTitle>
@@ -214,7 +253,6 @@ const Observabilidade = () => {
             </CardContent>
           </Card>
           
-          {/* Alertas Recentes */}
           <Card>
             <CardHeader>
               <CardTitle>Alertas Recentes</CardTitle>
@@ -245,6 +283,127 @@ const Observabilidade = () => {
                     </AlertDescription>
                   </Alert>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="supabase" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {supabaseStats.loading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    supabaseStats.totalUsers
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Usuários registrados no sistema
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Usuários Ativos (24h)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {supabaseStats.loading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    supabaseStats.activeUsers
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Usuários ativos nas últimas 24 horas
+                </div>
+                <Progress 
+                  value={(supabaseStats.activeUsers / supabaseStats.totalUsers) * 100} 
+                  className="h-2 mt-2"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Taxa de Atividade</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {supabaseStats.loading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    `${Math.round((supabaseStats.activeUsers / supabaseStats.totalUsers) * 100)}%`
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Porcentagem de usuários ativos
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Últimos Logins</CardTitle>
+              <CardDescription>Registro dos últimos acessos ao sistema</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {supabaseStats.loading ? (
+                  <div className="flex justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : supabaseStats.latestLogins.length === 0 ? (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Nenhum login registrado</AlertTitle>
+                    <AlertDescription>
+                      Não há registros de login no período analisado.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuário</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data/Hora</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Última Atividade</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                        {supabaseStats.latestLogins.map((login: any) => (
+                          <tr key={login.id}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="text-sm text-gray-900 dark:text-gray-100">
+                                {login.display_name || 'N/A'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {login.email || 'N/A'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {format(new Date(login.login_timestamp), 'PPpp', { locale: ptBR })}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {format(new Date(login.last_active), 'PPpp', { locale: ptBR })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
