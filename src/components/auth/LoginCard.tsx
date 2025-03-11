@@ -1,10 +1,10 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, LogIn } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { ConfigCheckResult } from '@/types/auth';
+import { Image } from '@/components/ui/image';
 
 interface LoginCardProps {
   handleLogin: () => void;
@@ -13,25 +13,20 @@ interface LoginCardProps {
 }
 
 const LoginCard = ({ handleLogin, loginInProgress, configCheck }: LoginCardProps) => {
-  const navigate = useNavigate();
   const isConfigured = configCheck.clientId && configCheck.tenant;
   
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-2xl">SFA Login</CardTitle>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8" 
-            onClick={() => navigate('/cisadm')}
-            title="Área Administrativa"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+        <div className="flex justify-center items-center mb-4">
+          <img 
+            src="/logo-ciser.png" 
+            alt="CISER Logo" 
+            className="h-12"
+          />
         </div>
-        <CardDescription>
+        <CardTitle className="text-2xl text-center">Copiloto de Vendas</CardTitle>
+        <CardDescription className="text-center">
           {isConfigured 
             ? "Faça login com sua conta Microsoft"
             : "Configure o Azure AD para continuar"}
@@ -79,15 +74,6 @@ const LoginCard = ({ handleLogin, loginInProgress, configCheck }: LoginCardProps
               Entrar com Microsoft
             </>
           )}
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          className="w-full" 
-          onClick={() => navigate('/cisadm/auth-config')}
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          Configurar Azure AD
         </Button>
       </CardFooter>
     </Card>
