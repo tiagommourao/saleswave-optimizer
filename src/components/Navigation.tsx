@@ -4,7 +4,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, FileBarChart, ShoppingCart, Users, Package } from 'lucide-react';
 
-const Navigation: FC = () => {
+interface NavigationProps {
+  onTabChange?: (value: string) => void;
+}
+
+const Navigation: FC<NavigationProps> = ({ onTabChange }) => {
   const location = useLocation();
   const currentPath = location.pathname;
 
