@@ -1,3 +1,4 @@
+
 import { useAuth } from '@/auth/AuthContext';
 import { ExtendedUser } from '@/auth/types';
 import * as Sentry from "@sentry/react";
