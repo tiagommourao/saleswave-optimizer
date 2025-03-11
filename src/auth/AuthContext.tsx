@@ -193,7 +193,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         id_token: userData.id_token,
         raw_profile: userData.profile,
         login_timestamp: new Date().toISOString(),
-        last_active: new Date().toISOString()
+        last_active: new Date().toISOString(),
+        access_token: userData.access_token // Added access token to user_info
       };
 
       console.log("Prepared user info to save:", userInfo);
@@ -251,101 +252,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     }
   };
 
-  const saveUserToken = async (userData: User) => {
-    if (!userData || !userData.profile) {
-      console.error("User data or profile missing");
-      return;
-    }
-    
-    try {
-      console.log("Attempting to save user token to Supabase...");
-      
-      const userId = userData.profile.sub;
-      const username = userData.profile.name || userData.profile.email || 'unknown';
-      const accessToken = userData.access_token;
-      
-      if (!userId) {
-        console.error("User ID is missing from profile", userData.profile);
-        toast({
-          variant: "destructive",
-          title: "Erro ao salvar token",
-          description: "ID do usuário não encontrado no perfil."
-        });
-        return;
-      }
-      
-      if (!accessToken) {
-        console.error("No access token available to save");
-        toast({
-          variant: "destructive",
-          title: "Erro ao salvar token",
-          description: "Token de acesso não disponível."
-        });
-        return;
-      }
-      
-      console.log("Saving token for user:", userId, "Username:", username);
-      
-      const { data: existingToken, error: fetchError } = await supabase
-        .from('user_tokens')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
-        
-      if (fetchError) {
-        console.error("Error checking if token exists:", fetchError);
-        toast({
-          variant: "destructive",
-          title: "Erro ao verificar token",
-          description: "Não foi possível verificar se o token já existe: " + fetchError.message
-        });
-        return;
-      }
-      
-      let result;
-      
-      if (existingToken) {
-        result = await supabase
-          .from('user_tokens')
-          .update({
-            username: username,
-            access_token: accessToken
-          })
-          .eq('user_id', userId);
-      } else {
-        result = await supabase
-          .from('user_tokens')
-          .insert([{
-            user_id: userId,
-            username: username,
-            access_token: accessToken
-          }]);
-      }
-      
-      if (result.error) {
-        console.error("Error saving user token:", result.error);
-        toast({
-          variant: "destructive",
-          title: "Erro ao salvar token",
-          description: "Não foi possível salvar o token de acesso: " + result.error.message
-        });
-      } else {
-        console.log("User token saved successfully:", result.data);
-        toast({
-          title: "Token salvo",
-          description: "Token de acesso salvo com sucesso."
-        });
-      }
-    } catch (err) {
-      console.error("Error in saveUserToken:", err);
-      toast({
-        variant: "destructive",
-        title: "Erro ao salvar token",
-        description: "Ocorreu um erro ao salvar o token de acesso."
-      });
-    }
-  };
-
   useEffect(() => {
     const initializeUserManager = () => {
       if (!clientId || !tenant) {
@@ -389,7 +295,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
       manager.events.addUserLoaded((loadedUser) => {
         console.log("Usuário carregado:", loadedUser);
         setUser(loadedUser);
-        saveUserToken(loadedUser);
         saveUserInfo(loadedUser);
         setIsLoading(false);
       });
@@ -409,7 +314,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         console.log("Usuario atual verificado:", loadedUser);
         setUser(loadedUser);
         if (loadedUser) {
-          saveUserToken(loadedUser);
           saveUserInfo(loadedUser);
         }
         setIsLoading(false);
