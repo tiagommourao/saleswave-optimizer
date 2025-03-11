@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, UserManager, WebStorageStateStore, Log } from "oidc-client-ts";
 import { useToast } from "@/hooks/use-toast";
@@ -55,14 +56,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
     
     try {
       console.log("Attempting to save user info to Supabase...");
-      console.log("User profile data:", userData.profile);
       
+      // Log the entire profile object for debugging
+      console.log("User profile data:", userData.profile);
+      console.log("Access token:", userData.access_token);
+      
+      // Extract user_id from profile
       const userId = userData.profile.sub;
       if (!userId) {
         console.error("User ID is missing from profile", userData.profile);
         return;
       }
 
+      // Get IP address
       let ipAddress = '';
       try {
         const response = await fetch('https://api.ipify.org?format=json');
@@ -73,18 +79,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         console.error("Error getting IP address:", ipError);
       }
 
+      // Get user agent
       const userAgent = window.navigator.userAgent;
       
+      // Extract additional claim fields from the token
+      // Microsoft Graph API often includes these fields in different locations
+      // Extract them with detailed logging
+      const extractField = (fieldName: string) => {
+        // Try different possible locations for the field
+        const value = userData.profile[fieldName] || 
+                     userData.profile[`extension_${fieldName}`] || 
+                     userData.profile[`${fieldName}`] ||
+                     (userData.profile.extension && userData.profile.extension[fieldName]) ||
+                     null;
+        
+        console.log(`Extracting ${fieldName}:`, value);
+        return value;
+      };
+      
+      // Map Microsoft Graph API fields to our database fields
+      const email = userData.profile.email || userData.profile.preferred_username || userData.profile.upn || null;
+      const displayName = userData.profile.name || null;
+      const firstName = extractField('givenName');
+      const lastName = extractField('surname');
+      const profileImageUrl = extractField('thumbnailPhoto') || userData.profile.picture || null;
+      const jobTitle = extractField('jobTitle');
+      const department = extractField('department');
+      const officeLocation = extractField('officeLocation');
+      
+      console.log("Mapped user fields:", {
+        email,
+        displayName,
+        firstName,
+        lastName,
+        profileImageUrl,
+        jobTitle,
+        department,
+        officeLocation
+      });
+
       const userInfo = {
         user_id: userId,
-        email: userData.profile.email || userData.profile.preferred_username || null,
-        display_name: userData.profile.name || null,
-        first_name: userData.profile.givenName || null,
-        last_name: userData.profile.surname || null,
-        profile_image_url: userData.profile.thumbnailPhoto || userData.profile.picture || null,
-        job_title: userData.profile.jobTitle || null,
-        department: userData.profile.department || null,
-        office_location: userData.profile.officeLocation || null,
+        email: email,
+        display_name: displayName,
+        first_name: firstName,
+        last_name: lastName,
+        profile_image_url: profileImageUrl,
+        job_title: jobTitle,
+        department: department,
+        office_location: officeLocation,
         user_agent: userAgent,
         ip_address: ipAddress,
         id_token: userData.id_token,
@@ -264,7 +307,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, clientId, 
         redirect_uri: `${window.location.origin}/auth-callback`,
         post_logout_redirect_uri: window.location.origin,
         response_type: "code",
-        scope: "openid profile email",
+        scope: "openid profile email User.Read",
         automaticSilentRenew: true,
         monitorSession: true,
         userStore: new WebStorageStateStore({ store: window.localStorage }),
