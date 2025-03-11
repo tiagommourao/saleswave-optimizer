@@ -20,12 +20,16 @@ const LoginCard = ({ handleLogin, loginInProgress, configCheck }: LoginCardProps
       <CardHeader className="space-y-1">
         <div className="flex justify-center items-center mb-4">
           <img 
-            src="/logo-ciser.png" 
+            src="https://www.ciser.com.br/application/modules/comum/assets/img/logo-ciser.svg" 
             alt="CISER Logo" 
             className="h-12"
           />
         </div>
-        <CardTitle className="text-2xl text-center">Copiloto de Vendas</CardTitle>
+        <div className="text-center mb-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+            COPILOTO DE VENDAS
+          </h1>
+        </div>
         <CardDescription className="text-center">
           {isConfigured 
             ? "Faça login com sua conta Microsoft"
@@ -40,23 +44,6 @@ const LoginCard = ({ handleLogin, loginInProgress, configCheck }: LoginCardProps
                 <p className="text-sm text-orange-700 dark:text-orange-200">
                   Configuração incompleta. Configure o Azure AD antes de continuar.
                 </p>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {isConfigured && (
-          <div className="rounded-md border-l-4 border-green-500 bg-green-50 dark:bg-green-950 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <p className="text-sm text-green-700 dark:text-green-200">
-                  Configuração pronta. Você pode fazer login agora.
-                </p>
-                {configCheck.source && (
-                  <p className="text-xs text-green-600 dark:text-green-300 mt-1">
-                    Usando configurações do {configCheck.source === "database" ? "banco de dados" : "armazenamento local"}
-                  </p>
-                )}
               </div>
             </div>
           </div>
