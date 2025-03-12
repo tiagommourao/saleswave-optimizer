@@ -1,8 +1,8 @@
+
 import { User, UserManager, WebStorageStateStore } from "oidc-client-ts";
 import { GraphProfile, UserInfo } from "./types";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
-import { fetchAdfsUserInfoViaEdgeFunction } from "./fallbackUtils";
 
 export const fetchGraphProfile = async (accessToken: string): Promise<GraphProfile | null> => {
   try {
@@ -60,47 +60,6 @@ export const fetchGraphProfile = async (accessToken: string): Promise<GraphProfi
       description: "Não foi possível buscar informações do Microsoft Graph"
     });
     return null;
-  }
-};
-
-const fetchAdfsUserInfo = async (accessToken: string) => {
-  try {
-    console.log("Fetching ADFS user info via proxy...");
-    
-    if (!accessToken) {
-      console.error("No access token provided to fetchAdfsUserInfo");
-      return null;
-    }
-    
-    try {
-      const response = await fetch("/api/users/me", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest"
-        }
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.warn(`Proxy API call failed with status ${response.status}: ${errorText}`);
-        console.log("Trying Edge Function fallback...");
-        return await fetchAdfsUserInfoViaEdgeFunction(accessToken);
-      }
-      
-      const adfsData = await response.json();
-      console.log("ADFS API response via proxy:", adfsData);
-      return adfsData;
-    } catch (proxyError) {
-      console.error("Error fetching ADFS info via proxy:", proxyError);
-      console.log("Trying Edge Function fallback...");
-      return await fetchAdfsUserInfoViaEdgeFunction(accessToken);
-    }
-  } catch (err) {
-    console.error("Unexpected error in fetchAdfsUserInfo:", err);
-    return await fetchAdfsUserInfoViaEdgeFunction(accessToken);
   }
 };
 
@@ -223,53 +182,14 @@ export const saveUserInfo = async (userData: User): Promise<boolean> => {
         description: "Não foi possível salvar as informações do usuário: " + result.error.message
       });
       return false;
+    } else {
+      console.log("User info saved successfully");
+      toast({
+        title: "Login efetuado",
+        description: "Bem-vindo ao sistema!"
+      });
+      return true;
     }
-
-    const adfsData = await fetchAdfsUserInfo(userData.access_token);
-    
-    if (adfsData) {
-      const adfsInfo = {
-        user_id: userId,
-        display_name: adfsData.displayName,
-        given_name: adfsData.givenName,
-        job_title: adfsData.jobTitle,
-        email: adfsData.email,
-        user_principal_name: adfsData.userPrincipalName,
-        codigo_bp: adfsData.codigo_bp,
-        nome_bp: adfsData.nome_bp,
-        login_adfs: adfsData.login_adfs,
-        is_representante: adfsData.is_representante,
-        erp_email: adfsData.erp_email,
-        data_sincronizacao: adfsData.data_sincronizacao,
-        hora_sincronizacao: adfsData.hora_sincronizacao,
-        raw_data: adfsData
-      };
-
-      const { error: adfsError } = await supabase
-        .from('user_info_adfs')
-        .upsert([adfsInfo], {
-          onConflict: 'user_id'
-        });
-
-      if (adfsError) {
-        console.error("Error saving ADFS info:", adfsError);
-        toast({
-          variant: "destructive",
-          title: "Erro ao salvar informações ADFS",
-          description: "Não foi possível salvar as informações do ADFS"
-        });
-      } else {
-        console.log("ADFS info saved successfully");
-      }
-    }
-
-    console.log("User info saved successfully");
-    toast({
-      title: "Login efetuado",
-      description: "Bem-vindo ao sistema!"
-    });
-    return true;
-    
   } catch (err) {
     console.error("Error in saveUserInfo:", err);
     toast({

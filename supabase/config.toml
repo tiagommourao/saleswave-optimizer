@@ -1,5 +1,1 @@
-
 project_id = "ycjmaxrexzzclhvgynwr"
-[api]
-enabled = true
-[api.edge_functions]
