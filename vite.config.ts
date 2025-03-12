@@ -15,7 +15,21 @@ export default defineConfig(({ mode }) => ({
         target: 'https://api.ciser.com.br',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path
+        rewrite: (path) => path,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request:', req.method, req.url);
+            // Log request headers for debugging
+            console.log('Request headers:', proxyReq.getHeaders());
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response:', proxyRes.statusCode, req.url);
+            console.log('Response headers:', proxyRes.headers);
+          });
+        }
       }
     }
   },
