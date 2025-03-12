@@ -1,4 +1,3 @@
-
 import { User, UserManager, WebStorageStateStore } from "oidc-client-ts";
 import { GraphProfile, UserInfo } from "./types";
 import { supabase } from "@/lib/supabase";
@@ -67,27 +66,15 @@ export const fetchAdfsUserInfo = async (accessToken: string): Promise<any | null
   try {
     console.log("Fetching user info from CISER ADFS API...");
     
-    // First, try a simple OPTIONS request to check if the API is accessible
-    try {
-      const optionsResponse = await fetch("/copiloto-vendas-api-qas/v1/users/me", {
-        method: "OPTIONS",
-        headers: {
-          "Accept": "application/json"
-        }
-      });
-      console.log("OPTIONS response status:", optionsResponse.status);
-    } catch (optionsError) {
-      console.warn("OPTIONS request failed:", optionsError);
-    }
-    
     const apiUrl = "/copiloto-vendas-api-qas/v1/users/me";
     console.log("Attempting to fetch from API URL:", apiUrl);
     
     const response = await fetch(apiUrl, {
       headers: {
         "Authorization": `Bearer ${accessToken}`,
+        "Accept": "application/json",
         "Content-Type": "application/json",
-        "Accept": "application/json"
+        "X-Requested-With": "XMLHttpRequest"
       }
     });
     
@@ -96,23 +83,15 @@ export const fetchAdfsUserInfo = async (accessToken: string): Promise<any | null
     
     // Get response content first as text to inspect it
     const responseText = await response.text();
-    console.log("Raw response text:", responseText.substring(0, 500) + (responseText.length > 500 ? "..." : ""));
+    console.log("Raw response text:", responseText.substring(0, 500));
     
-    // Check if it looks like HTML
     if (responseText.trim().startsWith("<!DOCTYPE") || responseText.trim().startsWith("<html")) {
       console.error("Received HTML instead of JSON response");
       toast({
         variant: "destructive",
-        title: "Erro de resposta da API",
-        description: "O servidor retornou HTML em vez de JSON. Possível erro de proxy ou redirecionamento."
+        title: "Erro na autenticação",
+        description: "O servidor retornou uma página HTML em vez de dados. Por favor, tente novamente."
       });
-      
-      // Try to extract useful information from the HTML if possible
-      const titleMatch = responseText.match(/<title>(.*?)<\/title>/i);
-      if (titleMatch) {
-        console.log("HTML page title:", titleMatch[1]);
-      }
-      
       return null;
     }
     
@@ -142,8 +121,8 @@ export const fetchAdfsUserInfo = async (accessToken: string): Promise<any | null
     console.error("Error fetching ADFS user info:", err);
     toast({
       variant: "destructive",
-      title: "Erro ao buscar informações ADFS",
-      description: "Não foi possível buscar informações adicionais do usuário"
+      title: "Erro ao buscar informações",
+      description: "Não foi possível buscar informações do usuário ADFS"
     });
     return null;
   }
