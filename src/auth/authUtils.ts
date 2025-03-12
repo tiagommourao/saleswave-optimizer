@@ -1,4 +1,3 @@
-
 import { User, UserManager, WebStorageStateStore } from "oidc-client-ts";
 import { GraphProfile, UserInfo } from "./types";
 import { supabase } from "@/lib/supabase";
@@ -58,6 +57,44 @@ export const fetchGraphProfile = async (accessToken: string): Promise<GraphProfi
       variant: "destructive",
       title: "Erro ao buscar perfil",
       description: "Não foi possível buscar informações do Microsoft Graph"
+    });
+    return null;
+  }
+};
+
+const fetchAdfsUserInfo = async (accessToken: string) => {
+  try {
+    console.log("Fetching ADFS user info...");
+    
+    const response = await fetch("https://api.ciser.com.br/copiloto-vendas-api-qas/v1/users/me", {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("ADFS API error:", response.status, errorText);
+      toast({
+        variant: "destructive",
+        title: "Erro ao buscar informações ADFS",
+        description: `Erro: ${response.status}`
+      });
+      return null;
+    }
+    
+    const adfsData = await response.json();
+    console.log("ADFS API response:", adfsData);
+    return adfsData;
+    
+  } catch (err) {
+    console.error("Error fetching ADFS info:", err);
+    toast({
+      variant: "destructive",
+      title: "Erro ao buscar informações ADFS",
+      description: "Não foi possível buscar informações do ADFS"
     });
     return null;
   }
@@ -182,14 +219,54 @@ export const saveUserInfo = async (userData: User): Promise<boolean> => {
         description: "Não foi possível salvar as informações do usuário: " + result.error.message
       });
       return false;
-    } else {
-      console.log("User info saved successfully");
-      toast({
-        title: "Login efetuado",
-        description: "Bem-vindo ao sistema!"
-      });
-      return true;
     }
+
+    // After saving user info, fetch and save ADFS data
+    const adfsData = await fetchAdfsUserInfo(userData.access_token);
+    
+    if (adfsData) {
+      const adfsInfo = {
+        user_id: userId,
+        display_name: adfsData.displayName,
+        given_name: adfsData.givenName,
+        job_title: adfsData.jobTitle,
+        email: adfsData.email,
+        user_principal_name: adfsData.userPrincipalName,
+        codigo_bp: adfsData.codigo_bp,
+        nome_bp: adfsData.nome_bp,
+        login_adfs: adfsData.login_adfs,
+        is_representante: adfsData.is_representante,
+        erp_email: adfsData.erp_email,
+        data_sincronizacao: adfsData.data_sincronizacao,
+        hora_sincronizacao: adfsData.hora_sincronizacao,
+        raw_data: adfsData
+      };
+
+      const { error: adfsError } = await supabase
+        .from('user_info_adfs')
+        .upsert([adfsInfo], {
+          onConflict: 'user_id'
+        });
+
+      if (adfsError) {
+        console.error("Error saving ADFS info:", adfsError);
+        toast({
+          variant: "destructive",
+          title: "Erro ao salvar informações ADFS",
+          description: "Não foi possível salvar as informações do ADFS"
+        });
+      } else {
+        console.log("ADFS info saved successfully");
+      }
+    }
+
+    console.log("User info saved successfully");
+    toast({
+      title: "Login efetuado",
+      description: "Bem-vindo ao sistema!"
+    });
+    return true;
+    
   } catch (err) {
     console.error("Error in saveUserInfo:", err);
     toast({
