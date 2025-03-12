@@ -20,6 +20,10 @@ export default defineConfig(({ mode }) => ({
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             console.log('Sending Request to the Target:', req.method, req.url);
+            // Make sure content-type is set correctly for the proxy request
+            if (!proxyReq.getHeader('Content-Type') && req.headers['content-type']) {
+              proxyReq.setHeader('Content-Type', req.headers['content-type']);
+            }
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
             console.log('Received Response from the Target:', proxyRes.statusCode, req.url);

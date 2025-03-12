@@ -17,9 +17,25 @@ serve(async (req) => {
   }
 
   try {
-    const { accessToken } = await req.json();
+    // Parse request body safely
+    let body;
+    try {
+      body = await req.json();
+    } catch (jsonError) {
+      console.error("Failed to parse request body:", jsonError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+
+    const { accessToken } = body;
     
     if (!accessToken) {
+      console.error("Missing access token in request");
       return new Response(
         JSON.stringify({ error: 'Access token is required' }),
         { 
@@ -31,40 +47,50 @@ serve(async (req) => {
     
     console.log("Fetching ADFS user info from Edge Function...");
     
-    const response = await fetch("https://api.ciser.com.br/copiloto-vendas-api-qas/v1/users/me", {
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Accept": "application/json",
-        "Content-Type": "application/json"
+    try {
+      const response = await fetch("https://api.ciser.com.br/copiloto-vendas-api-qas/v1/users/me", {
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("ADFS API error:", response.status, errorText);
+        
+        return new Response(
+          JSON.stringify({ error: `API Error: ${response.status}`, details: errorText }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: response.status 
+          }
+        );
       }
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("ADFS API error:", response.status, errorText);
+      
+      const adfsData = await response.json();
+      console.log("ADFS API response received successfully");
       
       return new Response(
-        JSON.stringify({ error: `API Error: ${response.status}`, details: errorText }),
+        JSON.stringify(adfsData),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: response.status 
+          status: 200
+        }
+      );
+    } catch (fetchError) {
+      console.error("Error fetching from ADFS API:", fetchError);
+      return new Response(
+        JSON.stringify({ error: 'Error connecting to ADFS API', details: fetchError.message }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
         }
       );
     }
-    
-    const adfsData = await response.json();
-    console.log("ADFS API response received");
-    
-    return new Response(
-      JSON.stringify(adfsData),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    );
-    
   } catch (error) {
-    console.error("Error in Edge Function:", error);
+    console.error("Unexpected error in Edge Function:", error);
     
     return new Response(
       JSON.stringify({ error: 'Internal Server Error', details: error.message }),

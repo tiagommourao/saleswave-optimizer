@@ -67,28 +67,39 @@ const fetchAdfsUserInfo = async (accessToken: string) => {
   try {
     console.log("Fetching ADFS user info via proxy...");
     
-    const response = await fetch("/api/users/me", {
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest"
-      }
-    });
-    
-    if (!response.ok) {
-      console.warn("Proxy API call failed, trying Edge Function fallback...");
-      return await fetchAdfsUserInfoViaEdgeFunction(accessToken);
+    if (!accessToken) {
+      console.error("No access token provided to fetchAdfsUserInfo");
+      return null;
     }
     
-    const adfsData = await response.json();
-    console.log("ADFS API response via proxy:", adfsData);
-    return adfsData;
-    
+    try {
+      const response = await fetch("/api/users/me", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn(`Proxy API call failed with status ${response.status}: ${errorText}`);
+        console.log("Trying Edge Function fallback...");
+        return await fetchAdfsUserInfoViaEdgeFunction(accessToken);
+      }
+      
+      const adfsData = await response.json();
+      console.log("ADFS API response via proxy:", adfsData);
+      return adfsData;
+    } catch (proxyError) {
+      console.error("Error fetching ADFS info via proxy:", proxyError);
+      console.log("Trying Edge Function fallback...");
+      return await fetchAdfsUserInfoViaEdgeFunction(accessToken);
+    }
   } catch (err) {
-    console.error("Error fetching ADFS info via proxy:", err);
-    console.log("Trying Edge Function fallback...");
-    
+    console.error("Unexpected error in fetchAdfsUserInfo:", err);
     return await fetchAdfsUserInfoViaEdgeFunction(accessToken);
   }
 };

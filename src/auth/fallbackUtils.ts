@@ -6,6 +6,19 @@ export const fetchAdfsUserInfoViaEdgeFunction = async (accessToken: string) => {
   try {
     console.log("Fetching ADFS user info via Edge Function...");
     
+    // Add better error handling and debugging
+    if (!accessToken) {
+      console.error("No access token provided");
+      toast({
+        variant: "destructive",
+        title: "Erro ao buscar informações ADFS",
+        description: "Token de acesso não fornecido"
+      });
+      return null;
+    }
+
+    console.log("Calling Edge Function with access token");
+    
     const { data, error } = await supabase.functions.invoke("fetch-adfs-user", {
       body: { accessToken },
       headers: {
@@ -19,6 +32,16 @@ export const fetchAdfsUserInfoViaEdgeFunction = async (accessToken: string) => {
         variant: "destructive",
         title: "Erro ao buscar informações ADFS",
         description: "Erro ao chamar função de servidor"
+      });
+      return null;
+    }
+    
+    if (!data) {
+      console.error("Edge Function returned no data");
+      toast({
+        variant: "destructive",
+        title: "Erro ao buscar informações ADFS",
+        description: "Nenhum dado retornado do servidor"
       });
       return null;
     }
