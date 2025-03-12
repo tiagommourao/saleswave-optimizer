@@ -1,3 +1,4 @@
+
 import { User, UserManager, WebStorageStateStore } from "oidc-client-ts";
 import { GraphProfile, UserInfo } from "./types";
 import { supabase } from "@/lib/supabase";
@@ -62,136 +63,6 @@ export const fetchGraphProfile = async (accessToken: string): Promise<GraphProfi
   }
 };
 
-export const fetchAdfsUserInfo = async (accessToken: string): Promise<any | null> => {
-  try {
-    console.log("Fetching user info from CISER ADFS API...");
-    
-    const apiUrl = "/copiloto-vendas-api-qas/v1/users/me";
-    console.log("Attempting to fetch from API URL:", apiUrl);
-    
-    const response = await fetch(apiUrl, {
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest"
-      }
-    });
-    
-    console.log("Response status:", response.status);
-    console.log("Response headers:", Object.fromEntries([...response.headers.entries()]));
-    
-    // Get response content first as text to inspect it
-    const responseText = await response.text();
-    console.log("Raw response text:", responseText.substring(0, 500));
-    
-    if (responseText.trim().startsWith("<!DOCTYPE") || responseText.trim().startsWith("<html")) {
-      console.error("Received HTML instead of JSON response");
-      toast({
-        variant: "destructive",
-        title: "Erro na autenticação",
-        description: "O servidor retornou uma página HTML em vez de dados. Por favor, tente novamente."
-      });
-      return null;
-    }
-    
-    // Try to parse as JSON if it doesn't look like HTML
-    let adfsData;
-    try {
-      if (responseText.trim()) {
-        adfsData = JSON.parse(responseText);
-        console.log("Successfully parsed JSON response:", adfsData);
-      } else {
-        console.warn("Empty response received");
-        return null;
-      }
-    } catch (jsonError) {
-      console.error("Error parsing JSON:", jsonError);
-      console.error("Invalid JSON content:", responseText);
-      toast({
-        variant: "destructive",
-        title: "Erro ao processar resposta",
-        description: "A resposta da API não está no formato esperado."
-      });
-      return null;
-    }
-    
-    return adfsData;
-  } catch (err) {
-    console.error("Error fetching ADFS user info:", err);
-    toast({
-      variant: "destructive",
-      title: "Erro ao buscar informações",
-      description: "Não foi possível buscar informações do usuário ADFS"
-    });
-    return null;
-  }
-};
-
-export const saveUserAdfsInfo = async (userId: string, adfsData: any): Promise<boolean> => {
-  try {
-    console.log("Saving ADFS user info to Supabase...", { userId, adfsData });
-    
-    // Format the date and time fields
-    const dataSincronizacao = adfsData.data_sincronizacao ? new Date(adfsData.data_sincronizacao) : new Date();
-    const horaSincronizacao = adfsData.hora_sincronizacao || new Date().toTimeString().split(' ')[0];
-    
-    const adfsInfo = {
-      user_id: userId,
-      display_name: adfsData.displayName,
-      given_name: adfsData.givenName,
-      job_title: adfsData.jobTitle,
-      email: adfsData.email,
-      user_principal_name: adfsData.userPrincipalName,
-      codigo_bp: adfsData.codigo_bp,
-      nome_bp: adfsData.nome_bp,
-      login_adfs: adfsData.login_adfs,
-      is_representante: adfsData.is_representante,
-      erp_email: adfsData.erp_email,
-      data_sincronizacao: dataSincronizacao,
-      hora_sincronizacao: horaSincronizacao,
-      raw_data: adfsData
-    };
-
-    // Check if record already exists
-    const { data: existingData, error: fetchError } = await supabase
-      .from('user_info_adfs')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-      
-    if (fetchError) {
-      console.error("Error checking if ADFS user info exists:", fetchError);
-      return false;
-    }
-    
-    let result;
-    if (existingData) {
-      // Update existing record
-      result = await supabase
-        .from('user_info_adfs')
-        .update(adfsInfo)
-        .eq('user_id', userId);
-    } else {
-      // Insert new record
-      result = await supabase
-        .from('user_info_adfs')
-        .insert([adfsInfo]);
-    }
-    
-    if (result.error) {
-      console.error("Error saving ADFS user info:", result.error);
-      return false;
-    }
-    
-    console.log("ADFS user info saved successfully");
-    return true;
-  } catch (err) {
-    console.error("Error in saveUserAdfsInfo:", err);
-    return false;
-  }
-};
-
 export const saveUserInfo = async (userData: User): Promise<boolean> => {
   if (!userData || !userData.profile) {
     console.error("User data or profile missing");
@@ -202,7 +73,7 @@ export const saveUserInfo = async (userData: User): Promise<boolean> => {
     console.log("Attempting to save user info to Supabase...");
     
     console.log("User profile data from token:", userData.profile);
-    console.log("Access token:", userData.access_token ? "Token present (not shown for security)" : "No token");
+    console.log("Access token:", userData.access_token);
     
     const userId = userData.profile.sub;
     if (!userId) {
@@ -313,35 +184,6 @@ export const saveUserInfo = async (userData: User): Promise<boolean> => {
       return false;
     } else {
       console.log("User info saved successfully");
-      
-      // Now try to fetch ADFS user info but don't block the login process
-      // Use a separate try-catch to isolate any ADFS errors
-      setTimeout(async () => {
-        try {
-          console.log("Attempting to fetch ADFS user info...");
-          console.log("Access token for ADFS call:", userData.access_token ? "Present (not shown)" : "None");
-          
-          // Check if we have token before making the call
-          if (!userData.access_token) {
-            console.warn("No access token available for ADFS API call");
-            return;
-          }
-          
-          const adfsData = await fetchAdfsUserInfo(userData.access_token);
-          
-          if (adfsData) {
-            console.log("ADFS data received, attempting to save");
-            const saveResult = await saveUserAdfsInfo(userId, adfsData);
-            console.log("ADFS save result:", saveResult);
-          } else {
-            console.warn("No ADFS data returned, skipping save operation");
-          }
-        } catch (adfsError) {
-          console.error("Error handling ADFS data:", adfsError);
-          // Don't block the login process if ADFS data fails
-        }
-      }, 500);
-      
       toast({
         title: "Login efetuado",
         description: "Bem-vindo ao sistema!"

@@ -55,20 +55,3 @@ export interface UserInfo {
   last_active: string;
   access_token: string;
 }
-
-export interface AdfsUserInfo {
-  user_id: string;
-  display_name?: string;
-  given_name?: string;
-  job_title?: string;
-  email?: string;
-  user_principal_name?: string;
-  codigo_bp?: string;
-  nome_bp?: string;
-  login_adfs?: string;
-  is_representante?: string;
-  erp_email?: string;
-  data_sincronizacao?: Date;
-  hora_sincronizacao?: string;
-  raw_data?: any;
-}
