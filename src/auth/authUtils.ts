@@ -67,7 +67,14 @@ export const fetchAdfsUserInfo = async (accessToken: string): Promise<any | null
   try {
     console.log("Fetching user info from CISER ADFS API...");
     
-    const response = await fetch("https://api.ciser.com.br/copiloto-vendas-api-qas/v1/users/me", {
+    // Using a relative URL to avoid CORS issues - this will be proxied by the browser
+    // This assumes your app is deployed to ciser.com.br domain or a subdomain
+    // If testing locally, consider setting up a proxy in your dev server
+    const apiUrl = "/copiloto-vendas-api-qas/v1/users/me";
+    
+    console.log("Attempting to fetch from API URL:", apiUrl);
+    
+    const response = await fetch(apiUrl, {
       headers: {
         "Authorization": `Bearer ${accessToken}`,
         "Accept": "application/json"
@@ -82,7 +89,28 @@ export const fetchAdfsUserInfo = async (accessToken: string): Promise<any | null
         title: "Erro ao buscar informações ADFS",
         description: `Erro ao buscar informações adicionais: ${response.status}`
       });
-      return null;
+      
+      // Fallback - try with full URL as a last resort (might still have CORS issues)
+      try {
+        console.log("Attempting fallback with CORS mode no-cors...");
+        const fallbackResponse = await fetch("https://api.ciser.com.br/copiloto-vendas-api-qas/v1/users/me", {
+          mode: "no-cors", // This will prevent CORS errors but limit response usage
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Accept": "application/json"
+          }
+        });
+        
+        // Note: with no-cors, we can't actually read the response data
+        // This is just to prevent the app from crashing with CORS errors
+        console.log("Fallback response type:", fallbackResponse.type);
+        
+        // We still need to return null as we can't read the response with no-cors
+        return null;
+      } catch (fallbackError) {
+        console.error("Fallback also failed:", fallbackError);
+        return null;
+      }
     }
     
     const adfsData = await response.json();
@@ -285,19 +313,24 @@ export const saveUserInfo = async (userData: User): Promise<boolean> => {
     } else {
       console.log("User info saved successfully");
       
-      // Now also fetch and save ADFS user info
-      try {
-        const adfsData = await fetchAdfsUserInfo(userData.access_token);
-        if (adfsData) {
-          const saveResult = await saveUserAdfsInfo(userId, adfsData);
-          if (!saveResult) {
-            console.warn("Failed to save ADFS user info, but continuing with login");
+      // Now also fetch and save ADFS user info - but don't block the login process
+      setTimeout(async () => {
+        try {
+          console.log("Attempting to fetch ADFS user info after delay...");
+          const adfsData = await fetchAdfsUserInfo(userData.access_token);
+          if (adfsData) {
+            const saveResult = await saveUserAdfsInfo(userId, adfsData);
+            if (!saveResult) {
+              console.warn("Failed to save ADFS user info, but continuing with login");
+            }
+          } else {
+            console.warn("No ADFS data returned, skipping save operation");
           }
+        } catch (adfsError) {
+          console.error("Error handling ADFS data:", adfsError);
+          // Don't block the login process if ADFS data fails
         }
-      } catch (adfsError) {
-        console.error("Error handling ADFS data:", adfsError);
-        // Don't block the login process if ADFS data fails
-      }
+      }, 500); // Add a slight delay to avoid race conditions
       
       toast({
         title: "Login efetuado",
