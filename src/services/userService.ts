@@ -12,24 +12,23 @@ export async function fetchUserInfo(): Promise<CiserUserInfo | null> {
       return JSON.parse(cached);
     }
 
-    // Get access token from user_info table
-    const { data: userInfo } = await supabase
-      .from('user_info')
-      .select('access_token')
-      .single();
-
-    if (!userInfo?.access_token) {
-      console.error('No access token found');
+    // Get current session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('No session found');
       return null;
     }
 
-    // Fetch from API
-    const response = await fetch('https://api.ciser.com.br/copiloto-vendas-api-qas/v1/users/me', {
-      headers: {
-        'Authorization': `Bearer ${userInfo.access_token}`,
-        'Content-Type': 'application/json',
+    // Call our Edge Function
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-user-info`,
+      {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        }
       }
-    });
+    );
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
