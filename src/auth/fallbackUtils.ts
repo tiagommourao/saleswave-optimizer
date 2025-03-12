@@ -17,12 +17,15 @@ export const fetchAdfsUserInfoViaEdgeFunction = async (accessToken: string) => {
       return null;
     }
 
-    console.log("Calling Edge Function with access token");
+    console.log("Calling Edge Function with access token:", accessToken.substring(0, 10) + "...");
     
-    // Ensure request body is correctly formatted JSON
+    // Garante que o corpo da requisição é formatado corretamente
+    const requestBody = JSON.stringify({ accessToken });
+    console.log("Request body:", requestBody.substring(0, 30) + "...");
+    
     const { data, error } = await supabase.functions.invoke("fetch-adfs-user", {
       method: "POST",
-      body: JSON.stringify({ accessToken }), // Explicit JSON stringification
+      body: requestBody,
       headers: {
         'Content-Type': 'application/json'
       }

@@ -20,18 +20,24 @@ export default defineConfig(({ mode }) => ({
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             console.log('Sending Request to the Target:', req.method, req.url);
-            // Make sure content-type is preserved
+            
+            // Garantir que os headers Content-Type e Authorization sejam preservados
             if (req.headers['content-type']) {
               proxyReq.setHeader('Content-Type', req.headers['content-type']);
+              console.log('Setting Content-Type header:', req.headers['content-type']);
             }
             
-            // Ensure Authorization header is properly forwarded
             if (req.headers['authorization']) {
               proxyReq.setHeader('Authorization', req.headers['authorization']);
+              console.log('Setting Authorization header:', 'Bearer ' + req.headers['authorization'].substring(7, 15) + '...');
             }
+            
+            // Log de todos os headers sendo enviados
+            console.log('All request headers:', Object.keys(req.headers).join(', '));
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
             console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+            console.log('Response headers:', JSON.stringify(proxyRes.headers));
           });
         }
       }

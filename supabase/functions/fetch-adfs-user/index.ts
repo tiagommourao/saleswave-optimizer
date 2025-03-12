@@ -20,43 +20,24 @@ serve(async (req) => {
   }
 
   try {
-    // Check Content-Type before trying to parse JSON
+    // Check if request is valid
+    if (!req.body) {
+      console.error("Request has no body");
+      return new Response(
+        JSON.stringify({ error: 'Request body is required' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+
+    // Check Content-Type
     const contentType = req.headers.get('content-type');
     console.log(`Content-Type header: ${contentType}`);
     
-    // Parse request body safely
-    let body = {};
-    
-    if (contentType && contentType.includes('application/json')) {
-      try {
-        // Handle empty body case
-        const text = await req.text();
-        console.log(`Request body text: ${text}`);
-        
-        if (text.trim() === '') {
-          console.error("Empty request body");
-          return new Response(
-            JSON.stringify({ error: 'Empty request body' }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 400 
-            }
-          );
-        }
-        
-        body = JSON.parse(text);
-      } catch (jsonError) {
-        console.error("Failed to parse request body:", jsonError);
-        return new Response(
-          JSON.stringify({ error: 'Invalid JSON body', details: jsonError.message }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400 
-          }
-        );
-      }
-    } else {
-      console.error("Content-Type is not application/json");
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error("Invalid Content-Type:", contentType);
       return new Response(
         JSON.stringify({ error: 'Content-Type must be application/json' }),
         { 
@@ -65,14 +46,60 @@ serve(async (req) => {
         }
       );
     }
+    
+    let body;
+    try {
+      // Get request body as text first to validate it's not empty
+      const bodyText = await req.text();
+      console.log("Request body length:", bodyText.length);
+      
+      if (!bodyText || bodyText.trim() === '') {
+        console.error("Empty request body");
+        return new Response(
+          JSON.stringify({ error: 'Request body cannot be empty' }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400 
+          }
+        );
+      }
+      
+      // Then try to parse as JSON
+      try {
+        body = JSON.parse(bodyText);
+        console.log("Parsed request body:", JSON.stringify(body).substring(0, 100));
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError.message);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Invalid JSON in request body', 
+            details: parseError.message,
+            receivedText: bodyText.substring(0, 50) + (bodyText.length > 50 ? '...' : '')
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400 
+          }
+        );
+      }
+    } catch (bodyError) {
+      console.error("Error reading request body:", bodyError);
+      return new Response(
+        JSON.stringify({ error: 'Error reading request body', details: bodyError.message }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
 
-    console.log("Parsed request body:", body);
-    const { accessToken } = body;
+    // Extract access token
+    const { accessToken } = body || {};
     
     if (!accessToken) {
       console.error("Missing access token in request");
       return new Response(
-        JSON.stringify({ error: 'Access token is required' }),
+        JSON.stringify({ error: 'Access token is required', receivedBody: JSON.stringify(body) }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400 
