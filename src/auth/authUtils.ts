@@ -63,6 +63,106 @@ export const fetchGraphProfile = async (accessToken: string): Promise<GraphProfi
   }
 };
 
+export const fetchAdfsUserInfo = async (accessToken: string): Promise<any | null> => {
+  try {
+    console.log("Fetching user info from CISER ADFS API...");
+    
+    const response = await fetch("https://api.ciser.com.br/copiloto-vendas-api-qas/v1/users/me", {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Accept": "application/json"
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("CISER ADFS API error:", response.status, errorText);
+      toast({
+        variant: "destructive",
+        title: "Erro ao buscar informações ADFS",
+        description: `Erro ao buscar informações adicionais: ${response.status}`
+      });
+      return null;
+    }
+    
+    const adfsData = await response.json();
+    console.log("CISER ADFS API response:", adfsData);
+    return adfsData;
+  } catch (err) {
+    console.error("Error fetching ADFS user info:", err);
+    toast({
+      variant: "destructive",
+      title: "Erro ao buscar informações ADFS",
+      description: "Não foi possível buscar informações adicionais do usuário"
+    });
+    return null;
+  }
+};
+
+export const saveUserAdfsInfo = async (userId: string, adfsData: any): Promise<boolean> => {
+  try {
+    console.log("Saving ADFS user info to Supabase...", { userId, adfsData });
+    
+    // Format the date and time fields
+    const dataSincronizacao = adfsData.data_sincronizacao ? new Date(adfsData.data_sincronizacao) : new Date();
+    const horaSincronizacao = adfsData.hora_sincronizacao || new Date().toTimeString().split(' ')[0];
+    
+    const adfsInfo = {
+      user_id: userId,
+      display_name: adfsData.displayName,
+      given_name: adfsData.givenName,
+      job_title: adfsData.jobTitle,
+      email: adfsData.email,
+      user_principal_name: adfsData.userPrincipalName,
+      codigo_bp: adfsData.codigo_bp,
+      nome_bp: adfsData.nome_bp,
+      login_adfs: adfsData.login_adfs,
+      is_representante: adfsData.is_representante,
+      erp_email: adfsData.erp_email,
+      data_sincronizacao: dataSincronizacao,
+      hora_sincronizacao: horaSincronizacao,
+      raw_data: adfsData
+    };
+
+    // Check if record already exists
+    const { data: existingData, error: fetchError } = await supabase
+      .from('user_info_adfs')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (fetchError) {
+      console.error("Error checking if ADFS user info exists:", fetchError);
+      return false;
+    }
+    
+    let result;
+    if (existingData) {
+      // Update existing record
+      result = await supabase
+        .from('user_info_adfs')
+        .update(adfsInfo)
+        .eq('user_id', userId);
+    } else {
+      // Insert new record
+      result = await supabase
+        .from('user_info_adfs')
+        .insert([adfsInfo]);
+    }
+    
+    if (result.error) {
+      console.error("Error saving ADFS user info:", result.error);
+      return false;
+    }
+    
+    console.log("ADFS user info saved successfully");
+    return true;
+  } catch (err) {
+    console.error("Error in saveUserAdfsInfo:", err);
+    return false;
+  }
+};
+
 export const saveUserInfo = async (userData: User): Promise<boolean> => {
   if (!userData || !userData.profile) {
     console.error("User data or profile missing");
@@ -184,6 +284,21 @@ export const saveUserInfo = async (userData: User): Promise<boolean> => {
       return false;
     } else {
       console.log("User info saved successfully");
+      
+      // Now also fetch and save ADFS user info
+      try {
+        const adfsData = await fetchAdfsUserInfo(userData.access_token);
+        if (adfsData) {
+          const saveResult = await saveUserAdfsInfo(userId, adfsData);
+          if (!saveResult) {
+            console.warn("Failed to save ADFS user info, but continuing with login");
+          }
+        }
+      } catch (adfsError) {
+        console.error("Error handling ADFS data:", adfsError);
+        // Don't block the login process if ADFS data fails
+      }
+      
       toast({
         title: "Login efetuado",
         description: "Bem-vindo ao sistema!"
