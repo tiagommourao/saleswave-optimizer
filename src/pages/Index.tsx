@@ -4,7 +4,6 @@ import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
 import Dashboard from '@/components/Dashboard';
 import Reports from '@/components/Reports';
-import UserProfile from '@/components/UserProfile';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -20,21 +19,11 @@ const Index = () => {
   const renderActiveContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return (
-          <>
-            <UserProfile />
-            <Dashboard />
-          </>
-        );
+        return <Dashboard />;
       case 'reports':
         return <Reports />;
       default:
-        return (
-          <>
-            <UserProfile />
-            <Dashboard />
-          </>
-        );
+        return <Dashboard />;
     }
   };
 

@@ -99,66 +99,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_info_adfs: {
-        Row: {
-          codigo_bp: string | null
-          created_at: string
-          data_sincronizacao: string | null
-          display_name: string | null
-          email: string | null
-          erp_email: string | null
-          given_name: string | null
-          hora_sincronizacao: string | null
-          id: string
-          is_representante: string | null
-          job_title: string | null
-          login_adfs: string | null
-          nome_bp: string | null
-          raw_data: Json | null
-          updated_at: string
-          user_id: string
-          user_principal_name: string | null
-        }
-        Insert: {
-          codigo_bp?: string | null
-          created_at?: string
-          data_sincronizacao?: string | null
-          display_name?: string | null
-          email?: string | null
-          erp_email?: string | null
-          given_name?: string | null
-          hora_sincronizacao?: string | null
-          id?: string
-          is_representante?: string | null
-          job_title?: string | null
-          login_adfs?: string | null
-          nome_bp?: string | null
-          raw_data?: Json | null
-          updated_at?: string
-          user_id: string
-          user_principal_name?: string | null
-        }
-        Update: {
-          codigo_bp?: string | null
-          created_at?: string
-          data_sincronizacao?: string | null
-          display_name?: string | null
-          email?: string | null
-          erp_email?: string | null
-          given_name?: string | null
-          hora_sincronizacao?: string | null
-          id?: string
-          is_representante?: string | null
-          job_title?: string | null
-          login_adfs?: string | null
-          nome_bp?: string | null
-          raw_data?: Json | null
-          updated_at?: string
-          user_id?: string
-          user_principal_name?: string | null
-        }
-        Relationships: []
-      }
       user_tokens: {
         Row: {
           access_token: string
