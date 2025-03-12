@@ -1,4 +1,3 @@
-
 import { User, UserManager, WebStorageStateStore } from "oidc-client-ts";
 import { GraphProfile, UserInfo } from "./types";
 import { supabase } from "@/lib/supabase";
@@ -67,53 +66,69 @@ export const fetchAdfsUserInfo = async (accessToken: string): Promise<any | null
   try {
     console.log("Fetching user info from CISER ADFS API...");
     
-    // Using a relative URL to avoid CORS issues - this will be proxied by the browser
-    // This assumes your app is deployed to ciser.com.br domain or a subdomain
-    // If testing locally, consider setting up a proxy in your dev server
     const apiUrl = "/copiloto-vendas-api-qas/v1/users/me";
-    
     console.log("Attempting to fetch from API URL:", apiUrl);
     
     const response = await fetch(apiUrl, {
       headers: {
         "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
         "Accept": "application/json"
       }
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("CISER ADFS API error:", response.status, errorText);
+      console.error("CISER ADFS API error:", response.status);
+      
+      // Try to get more detailed error info
+      let errorDetails = '';
+      const contentType = response.headers.get("content-type");
+      
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          const errorJson = await response.json();
+          errorDetails = JSON.stringify(errorJson);
+        } catch (e) {
+          errorDetails = await response.text();
+        }
+      } else {
+        errorDetails = await response.text();
+      }
+      
+      console.error("Error details:", errorDetails);
+      
       toast({
         variant: "destructive",
         title: "Erro ao buscar informações ADFS",
-        description: `Erro ao buscar informações adicionais: ${response.status}`
+        description: `Erro ${response.status}: Verifique os logs para mais detalhes`
       });
       
-      // Fallback - try with full URL as a last resort (might still have CORS issues)
-      try {
-        console.log("Attempting fallback with CORS mode no-cors...");
-        const fallbackResponse = await fetch("https://api.ciser.com.br/copiloto-vendas-api-qas/v1/users/me", {
-          mode: "no-cors", // This will prevent CORS errors but limit response usage
-          headers: {
-            "Authorization": `Bearer ${accessToken}`,
-            "Accept": "application/json"
-          }
-        });
-        
-        // Note: with no-cors, we can't actually read the response data
-        // This is just to prevent the app from crashing with CORS errors
-        console.log("Fallback response type:", fallbackResponse.type);
-        
-        // We still need to return null as we can't read the response with no-cors
-        return null;
-      } catch (fallbackError) {
-        console.error("Fallback also failed:", fallbackError);
-        return null;
-      }
+      return null;
     }
     
-    const adfsData = await response.json();
+    // Now try to parse the JSON response
+    let adfsData;
+    try {
+      const text = await response.text();
+      console.log("Raw response:", text); // Log raw response for debugging
+      
+      if (!text) {
+        console.error("Empty response from ADFS API");
+        return null;
+      }
+      
+      try {
+        adfsData = JSON.parse(text);
+      } catch (jsonError) {
+        console.error("Error parsing JSON:", jsonError);
+        console.error("Invalid JSON response:", text);
+        return null;
+      }
+    } catch (textError) {
+      console.error("Error reading response:", textError);
+      return null;
+    }
+    
     console.log("CISER ADFS API response:", adfsData);
     return adfsData;
   } catch (err) {
