@@ -2,6 +2,7 @@ import { User, UserManager, WebStorageStateStore } from "oidc-client-ts";
 import { GraphProfile, UserInfo } from "./types";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
+import { fetchAdfsUserInfoViaEdgeFunction } from "./fallbackUtils";
 
 export const fetchGraphProfile = async (accessToken: string): Promise<GraphProfile | null> => {
   try {
@@ -64,39 +65,31 @@ export const fetchGraphProfile = async (accessToken: string): Promise<GraphProfi
 
 const fetchAdfsUserInfo = async (accessToken: string) => {
   try {
-    console.log("Fetching ADFS user info...");
+    console.log("Fetching ADFS user info via proxy...");
     
-    const response = await fetch("https://api.ciser.com.br/copiloto-vendas-api-qas/v1/users/me", {
+    const response = await fetch("/api/users/me", {
       headers: {
         "Authorization": `Bearer ${accessToken}`,
         "Accept": "application/json",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
       }
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("ADFS API error:", response.status, errorText);
-      toast({
-        variant: "destructive",
-        title: "Erro ao buscar informações ADFS",
-        description: `Erro: ${response.status}`
-      });
-      return null;
+      console.warn("Proxy API call failed, trying Edge Function fallback...");
+      return await fetchAdfsUserInfoViaEdgeFunction(accessToken);
     }
     
     const adfsData = await response.json();
-    console.log("ADFS API response:", adfsData);
+    console.log("ADFS API response via proxy:", adfsData);
     return adfsData;
     
   } catch (err) {
-    console.error("Error fetching ADFS info:", err);
-    toast({
-      variant: "destructive",
-      title: "Erro ao buscar informações ADFS",
-      description: "Não foi possível buscar informações do ADFS"
-    });
-    return null;
+    console.error("Error fetching ADFS info via proxy:", err);
+    console.log("Trying Edge Function fallback...");
+    
+    return await fetchAdfsUserInfoViaEdgeFunction(accessToken);
   }
 };
 
@@ -221,7 +214,6 @@ export const saveUserInfo = async (userData: User): Promise<boolean> => {
       return false;
     }
 
-    // After saving user info, fetch and save ADFS data
     const adfsData = await fetchAdfsUserInfo(userData.access_token);
     
     if (adfsData) {
