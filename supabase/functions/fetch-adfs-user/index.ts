@@ -10,11 +10,13 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders, status: 204 });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204 
+    });
   }
 
   try {
-    // Get the access token from the request
     const { accessToken } = await req.json();
     
     if (!accessToken) {
@@ -29,7 +31,6 @@ serve(async (req) => {
     
     console.log("Fetching ADFS user info from Edge Function...");
     
-    // Call the ADFS API using the access token
     const response = await fetch("https://api.ciser.com.br/copiloto-vendas-api-qas/v1/users/me", {
       headers: {
         "Authorization": `Bearer ${accessToken}`,
@@ -56,7 +57,10 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify(adfsData),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
     );
     
   } catch (error) {

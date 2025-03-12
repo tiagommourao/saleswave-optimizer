@@ -7,7 +7,10 @@ export const fetchAdfsUserInfoViaEdgeFunction = async (accessToken: string) => {
     console.log("Fetching ADFS user info via Edge Function...");
     
     const { data, error } = await supabase.functions.invoke("fetch-adfs-user", {
-      body: { accessToken }
+      body: { accessToken },
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
     
     if (error) {
