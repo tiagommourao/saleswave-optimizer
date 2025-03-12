@@ -8,8 +8,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("Edge function received request");
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling OPTIONS preflight request");
     return new Response(null, { 
       headers: corsHeaders,
       status: 204 
@@ -17,14 +20,45 @@ serve(async (req) => {
   }
 
   try {
+    // Check Content-Type before trying to parse JSON
+    const contentType = req.headers.get('content-type');
+    console.log(`Content-Type header: ${contentType}`);
+    
     // Parse request body safely
-    let body;
-    try {
-      body = await req.json();
-    } catch (jsonError) {
-      console.error("Failed to parse request body:", jsonError);
+    let body = {};
+    
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        // Handle empty body case
+        const text = await req.text();
+        console.log(`Request body text: ${text}`);
+        
+        if (text.trim() === '') {
+          console.error("Empty request body");
+          return new Response(
+            JSON.stringify({ error: 'Empty request body' }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 400 
+            }
+          );
+        }
+        
+        body = JSON.parse(text);
+      } catch (jsonError) {
+        console.error("Failed to parse request body:", jsonError);
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON body', details: jsonError.message }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400 
+          }
+        );
+      }
+    } else {
+      console.error("Content-Type is not application/json");
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON body' }),
+        JSON.stringify({ error: 'Content-Type must be application/json' }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400 
@@ -32,6 +66,7 @@ serve(async (req) => {
       );
     }
 
+    console.log("Parsed request body:", body);
     const { accessToken } = body;
     
     if (!accessToken) {

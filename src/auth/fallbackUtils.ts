@@ -19,8 +19,10 @@ export const fetchAdfsUserInfoViaEdgeFunction = async (accessToken: string) => {
 
     console.log("Calling Edge Function with access token");
     
+    // Ensure request body is correctly formatted JSON
     const { data, error } = await supabase.functions.invoke("fetch-adfs-user", {
-      body: { accessToken },
+      method: "POST",
+      body: JSON.stringify({ accessToken }), // Explicit JSON stringification
       headers: {
         'Content-Type': 'application/json'
       }
@@ -31,7 +33,7 @@ export const fetchAdfsUserInfoViaEdgeFunction = async (accessToken: string) => {
       toast({
         variant: "destructive",
         title: "Erro ao buscar informações ADFS",
-        description: "Erro ao chamar função de servidor"
+        description: `Erro ao chamar função: ${error.message || "Erro desconhecido"}`
       });
       return null;
     }
